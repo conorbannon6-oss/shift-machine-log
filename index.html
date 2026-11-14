@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Shift &amp; Machine Log</title>
+
+  <!-- PWA Standalone / Home Screen Meta Tags -->
+  <meta name="application-name" content="Shift &amp; Machine Log" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Shift Log" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0b1120" />
+  <link id="pwaManifestLink" rel="manifest" />
+  <link id="pwaAppleIconLink" rel="apple-touch-icon" />
+
+  <style>
+    :root {
+      --bg: #0b1120;
+      --surface: #111827;
+      --surface-2: #1e293b;
+      --surface-3: #273549;
+      --border: #2c3a52;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --green: #16a34a;
+      --green-hover: #15803d;
+      --green-soft: rgba(22, 163, 74, 0.16);
+      --green-border: rgba(34, 197, 94, 0.42);
+      --amber: #f59e0b;
+      --amber-soft: rgba(245, 158, 11, 0.16);
+      --amber-border: rgba(245, 158, 11, 0.42);
+      --purple: #c084fc;
+      --purple-soft: rgba(168, 85, 247, 0.16);
+      --purple-border: rgba(192, 132, 252, 0.42);
+      --red: #ef4444;
+      --red-soft: rgba(239, 68, 68, 0.16);
+      --red-border: rgba(239, 68, 68, 0.42);
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .app-shell {
+      max-width: 540px;
+      margin: 0 auto;
+      min-height: 100vh;
+      padding: 12px 14px 48px;
+    }
+
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(11, 17, 32, 0.94);
+      backdrop-filter: blur(8px);
+      padding: 8px 0 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .app-title {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .today-pill {
+      background: var(--green-soft);
+      border: 1px solid var(--green-border);
+      color: #86efac;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 5px 11px;
+      border-radius: 999px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .tab-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 5px;
+      border-radius: var(--radius-md);
+      margin-bottom: 14px;
+    }
+
+    .tab-btn {
+      min-height: 40px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.9rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: var(--surface-2);
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .card-title {
+      margin: 0;
+      font-size: 0.88rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+
+    .btn-start-big {
+      width: 100%;
+      min-height: 62px;
+      border: none;
+      border-radius: var(--radius-lg);
+      background: var(--green);
+      color: #ffffff;
+      font-size: 1.15rem;
+      font-weight: 900;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 8px 24px rgba(22, 163, 74, 0.28);
+      margin-bottom: 14px;
+    }
+
+    .btn-start-big:active {
+      background: var(--green-hover);
+      transform: scale(0.99);
+    }
+
+    .btn {
+      min-height: 44px;
+      padding: 9px 13px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-sm {
+      min-height: 36px;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+    }
+
+    .btn-full {
+      width: 100%;
+    }
+
+    .btn-green {
+      background: var(--green);
+      border-color: var(--green);
+      color: #fff;
+    }
+
+    .btn-amber {
+      background: var(--amber-soft);
+      border-color: var(--amber-border);
+      color: #fcd34d;
+    }
+
+    .btn-purple {
+      background: var(--purple-soft);
+      border-color: var(--purple-border);
+      color: #e9d5ff;
+    }
+
+    .btn-red {
+      background: var(--red-soft);
+      border-color: var(--red-border);
+      color: #fca5a5;
+    }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .field-group {
+      margin-bottom: 12px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    input[type="time"],
+    select,
+    textarea {
+      width: 100%;
+      min-height: 44px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      padding: 9px 11px;
+      font-size: 0.92rem;
+      font-family: inherit;
+    }
+
+    textarea {
+      min-height: 76px;
+      resize: vertical;
+    }
+
+    .timer-readout {
+      font-size: 1.75rem;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      color: #86efac;
+      letter-spacing: 0.02em;
+    }
+
+    .meta-line {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      background: var(--surface-3);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .badge-na {
+      color: var(--muted);
+      border-style: dashed;
+    }
+
+    .badge-part {
+      background: var(--purple-soft);
+      border-color: var(--purple-border);
+      color: #e9d5ff;
+    }
+
+    .chip-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      min-height: 36px;
+      padding: 6px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .chip.selected {
+      background: var(--green-soft);
+      border-color: var(--green-border);
+      color: #86efac;
+    }
+
+    .paused-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      margin-bottom: 8px;
+    }
+
+    .paused-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .parts-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 11px;
+      margin-bottom: 12px;
+    }
+
+    .part-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .part-row:first-child {
+      border-top: none;
+      padding-top: 0;
+    }
+
+    .qty-controls {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .qty-num {
+      min-width: 26px;
+      text-align: center;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .history-group {
+      margin-bottom: 14px;
+    }
+
+    .history-group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0 2px 6px;
+    }
+
+    .history-row {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 11px 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+
+    .history-row-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .hours-pill {
+      background: var(--green-soft);
+      border: 1px solid var(--green-border);
+      color: #86efac;
+      font-weight: 800;
+      font-size: 0.8rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .history-details {
+      margin-top: 9px;
+      padding-top: 9px;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+
+    .confirm-banner {
+      background: var(--amber-soft);
+      border: 1px solid var(--amber-border);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="top-bar">
+      <h1 class="app-title">Shift &amp; Machine Log</h1>
+      <span class="today-pill" id="todayHoursPill">Today: 0.00h</span>
+    </header>
+
+    <nav class="tab-bar" aria-label="Primary views">
+      <button type="button" class="tab-btn active" data-tab="log" onclick="switchTab('log')">Log</button>
+      <button type="button" class="tab-btn" data-tab="history" onclick="switchTab('history')">History</button>
+      <button type="button" class="tab-btn" data-tab="machines" onclick="switchTab('machines')">Machines</button>
+    </nav>
+
+    <div id="confirmBanner" class="confirm-banner hidden">
+      <div id="confirmText" class="meta-line" style="color: var(--text); font-weight: 700; margin-bottom: 8px;"></div>
+      <div class="btn-row" style="margin-top: 0;">
+        <button type="button" class="btn btn-sm btn-red" id="confirmYesBtn">Confirm</button>
+        <button type="button" class="btn btn-sm" onclick="hideConfirm()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- TAB 1: LOG -->
+    <section id="tab-log">
+      <button type="button" class="btn-start-big" id="startWorkBtn" onclick="startWork()">
+        &#9654; START WORK
+      </button>
+
+      <!-- Active Job Panel -->
+      <div id="activeJobCard" class="card hidden">
+        <div class="card-header">
+          <h2 class="card-title">Active Job</h2>
+          <span class="meta-line" id="activeStartedLabel">Started --:--</span>
+        </div>
+
+        <div class="field-group" style="display:flex; align-items:baseline; justify-content:space-between; gap:8px;">
+          <div class="timer-readout" id="activeTimerText">00:00:00</div>
+          <span class="meta-line" id="activeSelectionSummary">No machine selected</span>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">1. Room</label>
+          <div class="chip-strip" id="activeRoomChips"></div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">2. Line</label>
+          <div class="chip-strip" id="activeLineChips"></div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">3. Machine</label>
+          <div class="chip-strip" id="activeMachineChips"></div>
+        </div>
+
+        <!-- Parts Used + Bin Label Photo Auto-Fill -->
+        <div class="parts-box">
+          <div class="card-header" style="margin-bottom: 8px;">
+            <span class="field-label" style="margin:0;">Parts Used</span>
+            <span class="badge badge-part" id="activePartsCountBadge">0 parts</span>
+          </div>
+
+          <div class="btn-row" style="margin-top: 0; margin-bottom: 8px;">
+            <label class="btn btn-sm btn-purple" style="margin:0; cursor:pointer;">
+              Snap / Photo Bin Label
+              <input type="file" accept="image/*" capture="environment" class="hidden" id="activePhotoInput" onchange="handleBinPhoto(event, 'active')" />
+            </label>
+            <button type="button" class="btn btn-sm" onclick="toggleManualPartForm('active')">+ Manual Part</button>
+          </div>
+
+          <div id="activePhotoPreviewWrap" class="hidden" style="margin-bottom: 8px;">
+            <img id="activePhotoPreview" alt="Bin label preview" style="width:100%; max-height:140px; object-fit:cover; border-radius:8px; border:1px solid var(--border);" />
+            <div class="meta-line" id="activeScanStatus" style="margin-top:4px;"></div>
+          </div>
+
+          <div id="activeManualPartForm" class="hidden" style="margin-bottom: 8px;">
+            <div class="filter-grid">
+              <input type="text" id="activePartNoInput" placeholder="Part No. (e.g. 801177466)" />
+              <input type="text" id="activeBinInput" placeholder="Bin (e.g. 24C-01-02)" />
+            </div>
+            <div class="filter-grid">
+              <input type="text" id="activePartNameInput" placeholder="Part Name / OEM" />
+              <input type="number" id="activePartQtyInput" min="1" value="1" placeholder="Qty" />
+            </div>
+            <button type="button" class="btn btn-sm btn-green btn-full" onclick="addManualPart('active')">Add Part to Job</button>
+          </div>
+
+          <div id="activePartsList"></div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="activeNotesInput">Work Notes</label>
+          <textarea id="activeNotesInput" placeholder="What was done on this job..."></textarea>
+        </div>
+
+        <button type="button" class="btn btn-green btn-full" onclick="finishActiveJob()">FINISH &amp; SAVE LOG</button>
+        <div class="btn-row">
+          <button type="button" class="btn btn-amber" onclick="pauseActiveJob()">Pause Job</button>
+          <button type="button" class="btn btn-red" onclick="confirmDiscardActive()">Discard</button>
+        </div>
+      </div>
+
+      <!-- Paused Jobs Queue -->
+      <div id="pausedQueueCard" class="card hidden">
+        <div class="card-header">
+          <h2 class="card-title">Paused Jobs Queue</h2>
+          <span class="meta-line" id="pausedCountLabel">0 paused</span>
+        </div>
+        <div id="pausedQueueList"></div>
+      </div>
+
+      <!-- Manual / Past Entry Toggle -->
+      <div class="card">
+        <button type="button" class="btn btn-full" id="manualToggleBtn" onclick="toggleManualDrawer()">
+          Log Manual / Past Entry
+        </button>
+
+        <div id="manualDrawer" class="hidden" style="margin-top: 12px;">
+          <div class="filter-grid">
+            <div>
+              <label class="field-label" for="manualDate">Date</label>
+              <input type="date" id="manualDate" />
+            </div>
+            <div>
+              <label class="field-label" for="manualMachineSelect">Room &gt; Line &gt; Machine</label>
+              <select id="manualMachineSelect"></select>
+            </div>
+          </div>
+
+          <div class="filter-grid">
+            <div>
+              <label class="field-label" for="manualStart">Start Time</label>
+              <input type="time" id="manualStart" />
+            </div>
+            <div>
+              <label class="field-label" for="manualEnd">Finish Time</label>
+              <input type="time" id="manualEnd" />
+            </div>
+          </div>
+
+          <div class="parts-box">
+            <div class="card-header" style="margin-bottom: 8px;">
+              <span class="field-label" style="margin:0;">Parts Used</span>
+              <span class="badge badge-part" id="manualPartsCountBadge">0 parts</span>
+            </div>
+            <div class="btn-row" style="margin-top: 0; margin-bottom: 8px;">
+              <label class="btn btn-sm btn-purple" style="margin:0; cursor:pointer;">
+                Snap / Photo Bin Label
+                <input type="file" accept="image/*" capture="environment" class="hidden" id="manualPhotoInput" onchange="handleBinPhoto(event, 'manual')" />
+              </label>
+              <button type="button" class="btn btn-sm" onclick="toggleManualPartForm('manual')">+ Manual Part</button>
+            </div>
+            <div id="manualPhotoPreviewWrap" class="hidden" style="margin-bottom: 8px;">
+              <img id="manualPhotoPreview" alt="Manual bin label preview" style="width:100%; max-height:140px; object-fit:cover; border-radius:8px; border:1px solid var(--border);" />
+              <div class="meta-line" id="manualScanStatus" style="margin-top:4px;"></div>
+            </div>
+            <div id="manualManualPartForm" class="hidden" style="margin-bottom: 8px;">
+              <div class="filter-grid">
+                <input type="text" id="manualPartNoInput" placeholder="Part No. (e.g. 801237491)" />
+                <input type="text" id="manualBinInput" placeholder="Bin (e.g. 24B-01-03)" />
+              </div>
+              <div class="filter-grid">
+                <input type="text" id="manualPartNameInput" placeholder="Part Name / OEM" />
+                <input type="number" id="manualPartQtyInput" min="1" value="1" placeholder="Qty" />
+              </div>
+              <button type="button" class="btn btn-sm btn-green btn-full" onclick="addManualPart('manual')">Add Part to Log</button>
+            </div>
+            <div id="manualPartsList"></div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="manualNotes">Work Notes</label>
+            <textarea id="manualNotes" placeholder="What was done..."></textarea>
+          </div>
+
+          <button type="button" class="btn btn-green btn-full" onclick="saveManualLog()">Save Manual Log</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: HISTORY -->
+    <section id="tab-history" class="hidden">
+      <div class="card">
+        <div class="btn-row" style="margin-top: 0; margin-bottom: 8px;">
+          <button type="button" class="btn btn-sm btn-green" id="filterAllBtn" onclick="setHistoryScope('all')">All Logs</button>
+          <button type="button" class="btn btn-sm" id="filterTodayBtn" onclick="setHistoryScope('today')">Today Only</button>
+        </div>
+        <div class="filter-grid">
+          <select id="historyRoomFilter" onchange="renderHistory()">
+            <option value="">All Rooms</option>
+          </select>
+          <input type="text" id="historySearchInput" placeholder="Search machine, part, note..." oninput="renderHistory()" />
+        </div>
+        <button type="button" class="btn btn-sm btn-full" onclick="exportCsv()">Export CSV</button>
+      </div>
+      <div id="historyList"></div>
+    </section>
+
+    <!-- TAB 3: MACHINES -->
+    <section id="tab-machines" class="hidden">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Add Machine</h2>
+          <button type="button" class="btn btn-sm btn-red" onclick="confirmClearMachines()">Clear Sample Data</button>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="machineRoomInput">Room / 
