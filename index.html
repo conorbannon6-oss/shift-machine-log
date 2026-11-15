@@ -307,6 +307,18 @@
       color: #e9d5ff;
     }
 
+    .badge-warn {
+      background: var(--amber-soft);
+      border-color: var(--amber-border);
+      color: #fcd34d;
+    }
+
+    .badge-ok {
+      background: var(--green-soft);
+      border-color: var(--green-border);
+      color: #86efac;
+    }
+
     .chip-strip {
       display: flex;
       flex-wrap: wrap;
@@ -328,6 +340,16 @@
     .chip.selected {
       background: var(--green-soft);
       border-color: var(--green-border);
+      color: #86efac;
+    }
+
+    .chip.subtle-option {
+      border-style: dashed;
+      color: var(--muted);
+    }
+
+    .chip.subtle-option.selected {
+      border-style: solid;
       color: #86efac;
     }
 
@@ -444,6 +466,18 @@
       gap: 8px;
       margin-bottom: 10px;
     }
+
+    .id-readout-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
   </style>
 </head>
 <body>
@@ -482,21 +516,23 @@
 
         <div class="field-group" style="display:flex; align-items:baseline; justify-content:space-between; gap:8px;">
           <div class="timer-readout" id="activeTimerText">00:00:00</div>
-          <span class="meta-line" id="activeSelectionSummary">No machine selected</span>
+          <span class="meta-line" id="activeSelectionSummary">No room selected</span>
         </div>
 
+        <div class="id-readout-box" id="activeIdReadout"></div>
+
         <div class="field-group">
-          <label class="field-label">1. Room</label>
+          <label class="field-label">1. Room (Required)</label>
           <div class="chip-strip" id="activeRoomChips"></div>
         </div>
 
         <div class="field-group">
-          <label class="field-label">2. Line</label>
+          <label class="field-label">2. Line / Process Line (Optional)</label>
           <div class="chip-strip" id="activeLineChips"></div>
         </div>
 
         <div class="field-group">
-          <label class="field-label">3. Machine</label>
+          <label class="field-label">3. Machine / Asset (Optional)</label>
           <div class="chip-strip" id="activeMachineChips"></div>
         </div>
 
@@ -569,8 +605,8 @@
               <input type="date" id="manualDate" />
             </div>
             <div>
-              <label class="field-label" for="manualMachineSelect">Room &gt; Line &gt; Machine</label>
-              <select id="manualMachineSelect"></select>
+              <label class="field-label" for="manualTargetSelect">Room / Line / Machine</label>
+              <select id="manualTargetSelect"></select>
             </div>
           </div>
 
@@ -636,7 +672,7 @@
           <select id="historyRoomFilter" onchange="renderHistory()">
             <option value="">All Rooms</option>
           </select>
-          <input type="text" id="historySearchInput" placeholder="Search machine, part, note..." oninput="renderHistory()" />
+          <input type="text" id="historySearchInput" placeholder="Search room, line, machine, ID..." oninput="renderHistory()" />
         </div>
         <button type="button" class="btn btn-sm btn-full" onclick="exportCsv()">Export CSV</button>
       </div>
@@ -645,31 +681,65 @@
 
     <!-- TAB 3: MACHINES -->
     <section id="tab-machines" class="hidden">
+      <!-- ID Coverage Summary -->
+      <div class="card">
+        <div class="card-header" style="margin-bottom: 6px;">
+          <h2 class="card-title">Machine ID Coverage</h2>
+          <span class="badge badge-warn" id="idCoveragePctBadge">0% tagged</span>
+        </div>
+        <div class="meta-line" id="idCoverageSummaryText" style="margin-bottom: 10px;">
+          0 / 0 machines have IDs · 0 missing IDs
+        </div>
+        <button type="button" class="btn btn-sm btn-amber btn-full" id="missingIdFilterBtn" onclick="toggleMissingIdFilter()">
+          Show Missing IDs Only
+        </button>
+      </div>
+
+      <!-- Room IDs -->
       <div class="card">
         <div class="card-header">
-          <h2 class="card-title">Add Machine</h2>
+          <h2 class="card-title">Room IDs</h2>
+          <span class="meta-line">Room-level fallback</span>
+        </div>
+        <div class="filter-grid">
+          <input type="text" id="roomIdNameInput" placeholder="Room (e.g. Retail 1)" />
+          <input type="text" id="roomIdCodeInput" placeholder="Room ID (e.g. Retail 1)" />
+        </div>
+        <button type="button" class="btn btn-sm btn-green btn-full" onclick="saveRoomId()">Save Room ID</button>
+        <div id="roomIdsList" style="margin-top: 8px;"></div>
+      </div>
+
+      <!-- Add Machine -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Add Machine / Asset</h2>
           <button type="button" class="btn btn-sm btn-red" onclick="confirmClearMachines()">Clear Sample Data</button>
         </div>
 
         <div class="field-group">
-          <label class="field-label" for="machineRoomInput">Room</label>
-          <input type="text" id="machineRoomInput" placeholder="e.g. Packing Hall A" />
+          <label class="field-label" for="machineRoomInput">Room (Required)</label>
+          <input type="text" id="machineRoomInput" placeholder="e.g. Deboning or Retail 1" />
         </div>
         <div class="field-group">
-          <label class="field-label" for="machineLineInput">Line</label>
-          <input type="text" id="machineLineInput" placeholder="e.g. Line 1 (or leave blank for N/A)" />
+          <label class="field-label" for="machineLineInput">Line / Process Line (Optional)</label>
+          <input type="text" id="machineLineInput" placeholder="e.g. DSI Line, Drum Deboning Line, Nandos Line 1" />
         </div>
         <div class="field-group">
-          <label class="field-label" for="machineNameInput">Machine / Asset</label>
-          <input type="text" id="machineNameInput" placeholder="e.g. Ishida Weigher M-104" />
+          <label class="field-label" for="machineNameInput">Machine / Asset (Optional for room-only entry)</label>
+          <input type="text" id="machineNameInput" placeholder="e.g. AMF 4 or leave blank for room/line" />
         </div>
-        <button type="button" class="btn btn-green btn-full" onclick="addMachine()">Save Machine</button>
+        <div class="field-group">
+          <label class="field-label" for="machineAssetIdInput">Machine ID (Optional)</label>
+          <input type="text" id="machineAssetIdInput" placeholder="e.g. M-104 (leave blank if untagged)" />
+        </div>
+        <button type="button" class="btn btn-green btn-full" onclick="addMachine()">Save Entry</button>
       </div>
 
+      <!-- Saved Entries -->
       <div class="card">
         <div class="card-header">
-          <h2 class="card-title">Saved Machines</h2>
-          <span class="meta-line" id="machineCountLabel">0 machines</span>
+          <h2 class="card-title">Saved Rooms, Lines &amp; Machines</h2>
+          <span class="meta-line" id="machineCountLabel">0 entries</span>
         </div>
         <div id="machinesList"></div>
       </div>
@@ -678,28 +748,41 @@
 
   <script>
     const STORAGE_KEYS = {
-      machines: 'sml_machines_v1',
-      logs: 'sml_logs_v1',
-      active: 'sml_active_v1',
-      paused: 'sml_paused_v1'
+      machines: 'sml_machines_v2',
+      roomIds: 'sml_room_ids_v1',
+      logs: 'sml_logs_v2',
+      active: 'sml_active_v2',
+      paused: 'sml_paused_v2'
+    };
+
+    const DEFAULT_ROOM_IDS = {
+      'Retail 1': 'Retail 1',
+      'Deboning': 'DEB-01',
+      'Packing Hall A': 'PACK-A'
     };
 
     const DEFAULT_MACHINES = [
-      { id: 'm1', room: 'Packing Hall A', line: 'Line 1', name: 'Ishida Weigher M-104' },
-      { id: 'm2', room: 'Packing Hall A', line: 'Line 1', name: 'Tray Sealer M-108' },
-      { id: 'm3', room: 'Packing Hall A', line: 'N/A', name: 'Case Erector C-02' },
-      { id: 'm4', room: 'Processing', line: 'Line 2', name: 'Checkweigher CW-21' }
+      { id: 'm1', room: 'Deboning', line: 'Drum Deboning Line', name: 'AMF 4', assetId: 'M-404' },
+      { id: 'm2', room: 'Deboning', line: 'Thigh Deboning Line', name: 'Thigh Line Unit 1', assetId: '' },
+      { id: 'm3', room: 'Packing Hall A', line: 'DSI Line', name: 'DSI Portioner 01', assetId: 'M-104' },
+      { id: 'm4', room: 'Packing Hall A', line: 'Nandos Line 1', name: 'Tray Sealer M-108', assetId: '' },
+      { id: 'm5', room: 'Packing Hall A', line: 'Nandos Line 2', name: 'Checkweigher CW-21', assetId: 'M-210' },
+      { id: 'm6', room: 'Retail 1', line: '', name: '', assetId: '' }
     ];
 
     let machines = loadJson(STORAGE_KEYS.machines, DEFAULT_MACHINES);
+    let roomIds = loadJson(STORAGE_KEYS.roomIds, DEFAULT_ROOM_IDS);
     let logs = loadJson(STORAGE_KEYS.logs, []);
     let activeJob = loadJson(STORAGE_KEYS.active, null);
     let pausedJobs = loadJson(STORAGE_KEYS.paused, []);
     let manualParts = [];
     let historyScope = 'all';
+    let missingIdOnly = false;
     let expandedLogId = null;
+
     let selectedRoom = '';
-    let selectedLine = '';
+    let selectedLine = '__UNSET__'; // '__UNSET__' = not chosen yet, '' = explicitly no line (room-only), string = line name
+    let selectedMachineId = '__UNSET__'; // '__UNSET__' = not chosen yet, '' = explicitly no machine, string = machine id
     let timerInterval = null;
 
     function loadJson(key, fallback) {
@@ -713,6 +796,7 @@
 
     function saveState() {
       localStorage.setItem(STORAGE_KEYS.machines, JSON.stringify(machines));
+      localStorage.setItem(STORAGE_KEYS.roomIds, JSON.stringify(roomIds));
       localStorage.setItem(STORAGE_KEYS.logs, JSON.stringify(logs));
       localStorage.setItem(STORAGE_KEYS.active, JSON.stringify(activeJob));
       localStorage.setItem(STORAGE_KEYS.paused, JSON.stringify(pausedJobs));
@@ -774,6 +858,58 @@
       document.getElementById('confirmBanner').classList.add('hidden');
     }
 
+    function resolveTargetInfo(room, line, machineId) {
+      const machine = machineId ? machines.find((m) => m.id === machineId) : null;
+      const effectiveRoom = machine ? machine.room : (room || '');
+      const effectiveLine = machine ? (machine.line || '') : (line || '');
+      const effectiveMachineName = machine ? (machine.name || '') : '';
+      const roomIdVal = (roomIds[effectiveRoom] || '').trim();
+
+      let label = 'No room selected';
+      if (effectiveRoom) {
+        const parts = [effectiveRoom];
+        if (effectiveLine) parts.push(effectiveLine);
+        if (effectiveMachineName) parts.push(effectiveMachineName);
+        label = parts.join(' > ');
+      }
+
+      let idStatusText = 'No ID';
+      let idState = 'none'; // 'machine' | 'missing_machine_with_room' | 'room' | 'none'
+
+      if (machine) {
+        const mId = (machine.assetId || '').trim();
+        if (mId) {
+          idStatusText = `Machine ID: ${mId}`;
+          idState = 'machine';
+        } else if (roomIdVal) {
+          idStatusText = `Room ID: ${roomIdVal} · Machine ID missing`;
+          idState = 'missing_machine_with_room';
+        } else {
+          idStatusText = 'Machine ID missing';
+          idState = 'none';
+        }
+      } else if (effectiveRoom) {
+        if (roomIdVal) {
+          idStatusText = `Room ID: ${roomIdVal}`;
+          idState = 'room';
+        } else {
+          idStatusText = 'No ID';
+          idState = 'none';
+        }
+      }
+
+      return {
+        room: effectiveRoom,
+        line: effectiveLine,
+        machineId: machine ? machine.id : '',
+        machineName: effectiveMachineName,
+        label,
+        roomId: roomIdVal,
+        idStatusText,
+        idState
+      };
+    }
+
     function startWork() {
       if (activeJob) return;
       const now = Date.now();
@@ -783,12 +919,15 @@
         startedAt: now,
         resumedAt: now,
         accumulatedMs: 0,
+        room: '',
+        line: '',
         machineId: '',
         notes: '',
         parts: []
       };
       selectedRoom = '';
-      selectedLine = '';
+      selectedLine = '__UNSET__';
+      selectedMachineId = '__UNSET__';
       saveState();
       renderActiveJob();
       startTimerLoop();
@@ -824,23 +963,32 @@
       document.getElementById('activeTimerText').textContent = formatDuration(getActiveElapsedMs());
       document.getElementById('activeNotesInput').value = activeJob.notes || '';
 
-      const currentMachine = machines.find((m) => m.id === activeJob.machineId);
-      if (currentMachine) {
-        selectedRoom = currentMachine.room;
-        selectedLine = currentMachine.line;
+      if (activeJob.room) selectedRoom = activeJob.room;
+      if (selectedLine === '__UNSET__' && activeJob.room) {
+        selectedLine = activeJob.line || '';
+      }
+      if (selectedMachineId === '__UNSET__' && activeJob.room) {
+        selectedMachineId = activeJob.machineId || '';
       }
 
-      const rooms = [...new Set(machines.map((m) => m.room))];
+      // 1. Rooms (from roomIds + saved machines)
+      const roomSet = new Set([
+        ...Object.keys(roomIds),
+        ...machines.map((m) => m.room).filter(Boolean)
+      ]);
       const roomWrap = document.getElementById('activeRoomChips');
       roomWrap.innerHTML = '';
-      rooms.forEach((room) => {
+      roomSet.forEach((room) => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'chip' + (selectedRoom === room ? ' selected' : '');
         btn.textContent = room;
         btn.onclick = () => {
           selectedRoom = room;
-          selectedLine = '';
+          selectedLine = '__UNSET__';
+          selectedMachineId = '__UNSET__';
+          activeJob.room = room;
+          activeJob.line = '';
           activeJob.machineId = '';
           saveState();
           renderActiveJob();
@@ -848,46 +996,98 @@
         roomWrap.appendChild(btn);
       });
 
-      const lines = selectedRoom
-        ? [...new Set(machines.filter((m) => m.room === selectedRoom).map((m) => m.line))]
-        : [];
+      // 2. Optional Lines (including machine-named lines like DSI Line, Drum Deboning Line)
       const lineWrap = document.getElementById('activeLineChips');
       lineWrap.innerHTML = '';
-      lines.forEach((line) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'chip' + (selectedLine === line ? ' selected' : '');
-        btn.textContent = line;
-        btn.onclick = () => {
-          selectedLine = line;
+      if (selectedRoom) {
+        const noLineBtn = document.createElement('button');
+        noLineBtn.type = 'button';
+        noLineBtn.className = 'chip subtle-option' + (selectedLine === '' ? ' selected' : '');
+        noLineBtn.textContent = 'No Line (Room only)';
+        noLineBtn.onclick = () => {
+          selectedLine = '';
+          selectedMachineId = '';
+          activeJob.line = '';
           activeJob.machineId = '';
           saveState();
           renderActiveJob();
         };
-        lineWrap.appendChild(btn);
-      });
+        lineWrap.appendChild(noLineBtn);
 
-      const filteredMachines = selectedRoom && selectedLine
-        ? machines.filter((m) => m.room === selectedRoom && m.line === selectedLine)
-        : [];
+        const lines = [...new Set(
+          machines
+            .filter((m) => m.room === selectedRoom && m.line)
+            .map((m) => m.line)
+        )];
+        lines.forEach((line) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'chip' + (selectedLine === line ? ' selected' : '');
+          btn.textContent = line;
+          btn.onclick = () => {
+            selectedLine = line;
+            selectedMachineId = '__UNSET__';
+            activeJob.line = line;
+            activeJob.machineId = '';
+            saveState();
+            renderActiveJob();
+          };
+          lineWrap.appendChild(btn);
+        });
+      }
+
+      // 3. Optional Machines on selected Room / Line
       const machineWrap = document.getElementById('activeMachineChips');
       machineWrap.innerHTML = '';
-      filteredMachines.forEach((m) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'chip' + (activeJob.machineId === m.id ? ' selected' : '');
-        btn.textContent = m.name;
-        btn.onclick = () => {
-          activeJob.machineId = m.id;
+      if (selectedRoom && selectedLine !== '__UNSET__') {
+        const noMachineBtn = document.createElement('button');
+        noMachineBtn.type = 'button';
+        noMachineBtn.className = 'chip subtle-option' + (selectedMachineId === '' ? ' selected' : '');
+        noMachineBtn.textContent = 'No Machine';
+        noMachineBtn.onclick = () => {
+          selectedMachineId = '';
+          activeJob.machineId = '';
           saveState();
           renderActiveJob();
         };
-        machineWrap.appendChild(btn);
-      });
+        machineWrap.appendChild(noMachineBtn);
 
-      document.getElementById('activeSelectionSummary').textContent = currentMachine
-        ? `${currentMachine.room} > ${currentMachine.line} > ${currentMachine.name}`
-        : 'No machine selected';
+        const filteredMachines = machines.filter((m) => {
+          if (m.room !== selectedRoom || !m.name) return false;
+          if (selectedLine === '') return !m.line;
+          return m.line === selectedLine;
+        });
+
+        filteredMachines.forEach((m) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'chip' + (activeJob.machineId === m.id ? ' selected' : '');
+          btn.textContent = m.name;
+          btn.onclick = () => {
+            selectedMachineId = m.id;
+            activeJob.machineId = m.id;
+            saveState();
+            renderActiveJob();
+          };
+          machineWrap.appendChild(btn);
+        });
+      }
+
+      const info = resolveTargetInfo(
+        selectedRoom,
+        selectedLine === '__UNSET__' ? '' : selectedLine,
+        selectedMachineId === '__UNSET__' ? '' : selectedMachineId
+      );
+
+      document.getElementById('activeSelectionSummary').textContent = info.label;
+      const idBox = document.getElementById('activeIdReadout');
+      const badgeClass =
+        info.idState === 'machine' || info.idState === 'room'
+          ? 'badge badge-ok'
+          : info.idState === 'missing_machine_with_room'
+            ? 'badge badge-warn'
+            : 'badge badge-na';
+      idBox.innerHTML = `<span class="${badgeClass}">${escapeHtml(info.idStatusText)}</span>`;
 
       renderPartsList('active');
       renderPausedQueue();
@@ -913,6 +1113,9 @@
       const [job] = pausedJobs.splice(idx, 1);
       job.resumedAt = Date.now();
       activeJob = job;
+      selectedRoom = job.room || '';
+      selectedLine = job.room ? (job.line || '') : '__UNSET__';
+      selectedMachineId = job.room ? (job.machineId || '') : '__UNSET__';
       saveState();
       renderActiveJob();
       startTimerLoop();
@@ -929,7 +1132,11 @@
 
     function finishActiveJob() {
       if (!activeJob) return;
-      const machine = machines.find((m) => m.id === activeJob.machineId);
+      const info = resolveTargetInfo(
+        selectedRoom,
+        selectedLine === '__UNSET__' ? '' : selectedLine,
+        selectedMachineId === '__UNSET__' ? '' : selectedMachineId
+      );
       const durationMs = getActiveElapsedMs();
       const notes = document.getElementById('activeNotesInput').value.trim();
 
@@ -939,10 +1146,12 @@
         startedAt: activeJob.startedAt,
         finishedAt: Date.now(),
         durationMs,
-        machineId: machine ? machine.id : '',
-        room: machine ? machine.room : 'Unassigned',
-        line: machine ? machine.line : 'N/A',
-        machineName: machine ? machine.name : 'Unassigned Machine',
+        room: info.room || 'Unassigned',
+        line: info.line || '',
+        machineId: info.machineId || '',
+        machineName: info.machineName || '',
+        targetLabel: info.label,
+        idStatusText: info.idStatusText,
         notes,
         parts: activeJob.parts || []
       });
@@ -965,14 +1174,14 @@
       card.classList.remove('hidden');
       list.innerHTML = '';
       pausedJobs.forEach((job) => {
-        const m = machines.find((item) => item.id === job.machineId);
+        const info = resolveTargetInfo(job.room, job.line, job.machineId);
         const div = document.createElement('div');
         div.className = 'paused-item';
         div.innerHTML = `
           <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
             <div>
-              <div style="font-weight:700;">${m ? `${m.room} > ${m.line} > ${m.name}` : 'Unassigned Machine'}</div>
-              <div class="meta-line">${formatDuration(job.accumulatedMs || 0)} elapsed</div>
+              <div style="font-weight:700;">${escapeHtml(info.label)}</div>
+              <div class="meta-line">${formatDuration(job.accumulatedMs || 0)} elapsed · ${escapeHtml(info.idStatusText)}</div>
             </div>
             <button type="button" class="btn btn-sm btn-green" onclick="resumePausedJob('${job.id}')">Resume</button>
           </div>
@@ -986,18 +1195,31 @@
       drawer.classList.toggle('hidden');
       if (!drawer.classList.contains('hidden')) {
         document.getElementById('manualDate').value = todayIso();
-        populateManualMachineSelect();
+        populateManualTargetSelect();
         renderPartsList('manual');
       }
     }
 
-    function populateManualMachineSelect() {
-      const select = document.getElementById('manualMachineSelect');
-      select.innerHTML = '<option value="">Select Room > Line > Machine</option>';
-      machines.forEach((m) => {
+    function populateManualTargetSelect() {
+      const select = document.getElementById('manualTargetSelect');
+      select.innerHTML = '<option value="">Select Room / Line / Machine</option>';
+
+      const roomSet = new Set([
+        ...Object.keys(roomIds),
+        ...machines.map((m) => m.room).filter(Boolean)
+      ]);
+      roomSet.forEach((room) => {
         const opt = document.createElement('option');
-        opt.value = m.id;
-        opt.textContent = `${m.room} > ${m.line} > ${m.name}`;
+        opt.value = `room::${room}`;
+        opt.textContent = `${room} (Room only)`;
+        select.appendChild(opt);
+      });
+
+      machines.forEach((m) => {
+        const info = resolveTargetInfo(m.room, m.line, m.id);
+        const opt = document.createElement('option');
+        opt.value = `machine::${m.id}`;
+        opt.textContent = info.label;
         select.appendChild(opt);
       });
     }
@@ -1091,7 +1313,7 @@
 
     function saveManualLog() {
       const date = document.getElementById('manualDate').value || todayIso();
-      const machineId = document.getElementById('manualMachineSelect').value;
+      const targetVal = document.getElementById('manualTargetSelect').value;
       const startStr = document.getElementById('manualStart').value;
       const endStr = document.getElementById('manualEnd').value;
       const notes = document.getElementById('manualNotes').value.trim();
@@ -1106,17 +1328,26 @@
         durationMs = finishedAt - startedAt;
       }
 
-      const machine = machines.find((m) => m.id === machineId);
+      let info = resolveTargetInfo('', '', '');
+      if (targetVal.startsWith('room::')) {
+        info = resolveTargetInfo(targetVal.slice(6), '', '');
+      } else if (targetVal.startsWith('machine::')) {
+        const m = machines.find((item) => item.id === targetVal.slice(9));
+        if (m) info = resolveTargetInfo(m.room, m.line, m.id);
+      }
+
       logs.unshift({
         id: 'log_' + Date.now(),
         date,
         startedAt,
         finishedAt,
         durationMs,
-        machineId: machine ? machine.id : '',
-        room: machine ? machine.room : 'Unassigned',
-        line: machine ? machine.line : 'N/A',
-        machineName: machine ? machine.name : 'Unassigned Machine',
+        room: info.room || 'Unassigned',
+        line: info.line || '',
+        machineId: info.machineId || '',
+        machineName: info.machineName || '',
+        targetLabel: info.label,
+        idStatusText: info.idStatusText,
         notes,
         parts: [...manualParts]
       });
@@ -1158,7 +1389,7 @@
         if (currentRoom && l.room !== currentRoom) return false;
         if (!query) return true;
         const partText = (l.parts || []).map((p) => `${p.name} ${p.partNo} ${p.bin}`).join(' ');
-        const hay = `${l.room} ${l.line} ${l.machineName} ${l.notes} ${partText}`.toLowerCase();
+        const hay = `${l.targetLabel || ''} ${l.room} ${l.line} ${l.machineName} ${l.idStatusText || ''} ${l.notes} ${partText}`.toLowerCase();
         return hay.includes(query);
       });
 
@@ -1198,8 +1429,8 @@
           row.innerHTML = `
             <div class="history-row-top">
               <div>
-                <div style="font-weight:800;">${escapeHtml(item.machineName)}</div>
-                <div class="meta-line">${escapeHtml(item.room)} &gt; ${escapeHtml(item.line)}</div>
+                <div style="font-weight:800;">${escapeHtml(item.targetLabel || item.machineName || item.room)}</div>
+                <div class="meta-line">${escapeHtml(item.idStatusText || 'No ID')}</div>
               </div>
               <span class="hours-pill">${hoursStr}</span>
             </div>
@@ -1222,11 +1453,21 @@
     }
 
     function exportCsv() {
-      const headers = ['Date', 'Room', 'Line', 'Machine', 'Hours', 'Notes', 'Parts'];
+      const headers = ['Date', 'Target', 'Room', 'Line', 'Machine', 'ID Status', 'Hours', 'Notes', 'Parts'];
       const rows = logs.map((l) => {
         const partsStr = (l.parts || []).map((p) => `${p.name} x${p.qty}`).join('; ');
         const hours = ((l.durationMs || 0) / 3600000).toFixed(2);
-        return [l.date, l.room, l.line, l.machineName, hours, l.notes || '', partsStr]
+        return [
+          l.date,
+          l.targetLabel || l.machineName || l.room,
+          l.room,
+          l.line || '',
+          l.machineName || '',
+          l.idStatusText || '',
+          hours,
+          l.notes || '',
+          partsStr
+        ]
           .map((v) => `"${String(v).replace(/"/g, '""')}"`)
           .join(',');
       });
@@ -1240,61 +1481,155 @@
       URL.revokeObjectURL(url);
     }
 
+    function saveRoomId() {
+      const room = document.getElementById('roomIdNameInput').value.trim();
+      const code = document.getElementById('roomIdCodeInput').value.trim();
+      if (!room) return;
+      if (code) {
+        roomIds[room] = code;
+      } else {
+        delete roomIds[room];
+      }
+      document.getElementById('roomIdNameInput').value = '';
+      document.getElementById('roomIdCodeInput').value = '';
+      saveState();
+      renderMachines();
+      populateManualTargetSelect();
+      renderActiveJob();
+    }
+
     function addMachine() {
       const room = document.getElementById('machineRoomInput').value.trim();
-      const line = document.getElementById('machineLineInput').value.trim() || 'N/A';
+      const line = document.getElementById('machineLineInput').value.trim();
       const name = document.getElementById('machineNameInput').value.trim();
-      if (!room || !name) return;
+      const assetId = document.getElementById('machineAssetIdInput').value.trim();
+      if (!room) return;
 
-      machines.push({
-        id: 'm_' + Date.now(),
-        room,
-        line,
-        name
-      });
+      if (name) {
+        machines.push({
+          id: 'm_' + Date.now(),
+          room,
+          line,
+          name,
+          assetId
+        });
+      } else if (assetId) {
+        roomIds[room] = assetId;
+      }
 
       document.getElementById('machineRoomInput').value = '';
       document.getElementById('machineLineInput').value = '';
       document.getElementById('machineNameInput').value = '';
+      document.getElementById('machineAssetIdInput').value = '';
       saveState();
       renderMachines();
-      populateManualMachineSelect();
+      populateManualTargetSelect();
+      renderActiveJob();
+    }
+
+    function updateMachineIdInline(id, newId) {
+      const item = machines.find((m) => m.id === id);
+      if (!item) return;
+      item.assetId = newId.trim();
+      saveState();
+      renderIdCoverage();
+      populateManualTargetSelect();
+      renderActiveJob();
     }
 
     function deleteMachine(id) {
       machines = machines.filter((m) => m.id !== id);
       saveState();
       renderMachines();
-      populateManualMachineSelect();
+      populateManualTargetSelect();
     }
 
     function confirmClearMachines() {
-      showConfirm('Remove all saved machines?', () => {
+      showConfirm('Remove all saved machines and room IDs?', () => {
         machines = [];
+        roomIds = {};
         saveState();
         renderMachines();
-        populateManualMachineSelect();
+        populateManualTargetSelect();
       });
     }
 
+    function toggleMissingIdFilter() {
+      missingIdOnly = !missingIdOnly;
+      const btn = document.getElementById('missingIdFilterBtn');
+      btn.classList.toggle('btn-green', missingIdOnly);
+      btn.classList.toggle('btn-amber', !missingIdOnly);
+      btn.textContent = missingIdOnly ? 'Showing Missing IDs Only (Tap to Show All)' : 'Show Missing IDs Only';
+      renderMachines();
+    }
+
+    function renderIdCoverage() {
+      const machineEntries = machines.filter((m) => m.name && m.name.trim());
+      const total = machineEntries.length;
+      const withId = machineEntries.filter((m) => m.assetId && m.assetId.trim()).length;
+      const missing = total - withId;
+      const pct = total ? Math.round((withId / total) * 100) : 0;
+
+      const badge = document.getElementById('idCoveragePctBadge');
+      badge.textContent = `${pct}% tagged`;
+      badge.className = pct === 100 && total > 0 ? 'badge badge-ok' : 'badge badge-warn';
+
+      document.getElementById('idCoverageSummaryText').textContent =
+        `${withId} / ${total} machines have IDs · ${missing} missing IDs`;
+    }
+
     function renderMachines() {
+      renderIdCoverage();
+
+      // Room IDs list
+      const roomList = document.getElementById('roomIdsList');
+      const roomKeys = Object.keys(roomIds);
+      roomList.innerHTML = roomKeys.length
+        ? roomKeys.map((r) => `
+            <div class="part-row">
+              <div>
+                <div style="font-weight:700;">${escapeHtml(r)}</div>
+                <div class="meta-line">Room ID: ${escapeHtml(roomIds[r])}</div>
+              </div>
+              <button type="button" class="btn btn-sm btn-red" onclick="delete roomIds['${escapeJs(r)}']; saveState(); renderMachines();">Remove</button>
+            </div>
+          `).join('')
+        : '<div class="meta-line">No Room IDs saved yet.</div>';
+
+      // Machines / Lines list
       const list = document.getElementById('machinesList');
+      const visible = machines.filter((m) => {
+        if (!missingIdOnly) return true;
+        return !m.assetId || !m.assetId.trim();
+      });
+
       document.getElementById('machineCountLabel').textContent =
-        `${machines.length} ${machines.length === 1 ? 'machine' : 'machines'}`;
+        `${visible.length} ${visible.length === 1 ? 'entry' : 'entries'}`;
       list.innerHTML = '';
-      if (!machines.length) {
-        list.innerHTML = '<div class="meta-line">No machines saved yet.</div>';
+
+      if (!visible.length) {
+        list.innerHTML = '<div class="meta-line">No entries match the current view.</div>';
         return;
       }
-      machines.forEach((m) => {
+
+      visible.forEach((m) => {
+        const info = resolveTargetInfo(m.room, m.line, m.id);
         const row = document.createElement('div');
         row.className = 'part-row';
+        row.style.flexDirection = 'column';
+        row.style.alignItems = 'stretch';
         row.innerHTML = `
-          <div>
-            <div style="font-weight:700;">${escapeHtml(m.name)}</div>
-            <div class="meta-line">${escapeHtml(m.room)} &gt; ${escapeHtml(m.line)}</div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+            <div>
+              <div style="font-weight:700;">${escapeHtml(info.label)}</div>
+              <div class="meta-line">${escapeHtml(info.idStatusText)}</div>
+            </div>
+            <button type="button" class="btn btn-sm btn-red" onclick="deleteMachine('${m.id}')">Remove</button>
           </div>
-          <button type="button" class="btn btn-sm btn-red" onclick="deleteMachine('${m.id}')">Remove</button>
+          <div style="display:flex; gap:6px; margin-top:6px;">
+            <input type="text" value="${escapeHtml(m.assetId || '')}" placeholder="Set Machine ID..."
+              onchange="updateMachineIdInline('${m.id}', this.value)" />
+          </div>
         `;
         list.appendChild(row);
       });
@@ -1308,12 +1643,14 @@
         .replace(/"/g, '&quot;');
     }
 
-    // Service Worker Registration for PWA Standalone Install
+    function escapeJs(str) {
+      return String(str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(() => {});
     }
 
-    // Initial Render
     updateTodayHours();
     renderActiveJob();
     if (activeJob) startTimerLoop();
