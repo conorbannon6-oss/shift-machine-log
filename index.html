@@ -2,1636 +2,839 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Shift &amp; Machine Log</title>
-
-  <!-- PWA Standalone / Home Screen Meta Tags -->
-  <meta name="application-name" content="Shift &amp; Machine Log" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Shift Log" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="theme-color" content="#0b1120" />
-  <link id="pwaManifestLink" rel="manifest" href="./manifest.json" />
-  <link id="pwaAppleIconLink" rel="apple-touch-icon" href="./1794697579276.jpg" />
-
   <style>
     :root {
-      --bg: #0b1120;
-      --surface: #111827;
-      --surface-2: #1e293b;
-      --surface-3: #273549;
-      --border: #2c3a52;
-      --text: #f8fafc;
-      --muted: #94a3b8;
+      --bg: #070d19;
+      --surface: #0f192d;
+      --surface-2: #16233e;
+      --border: #24365b;
+      --text: #e8eefc;
+      --muted: #94a3c4;
       --green: #16a34a;
-      --green-hover: #15803d;
-      --green-soft: rgba(22, 163, 74, 0.16);
-      --green-border: rgba(34, 197, 94, 0.42);
+      --green-bright: #22c55e;
+      --green-bg: rgba(22, 163, 74, 0.18);
       --amber: #f59e0b;
-      --amber-soft: rgba(245, 158, 11, 0.16);
-      --amber-border: rgba(245, 158, 11, 0.42);
-      --purple: #c084fc;
-      --purple-soft: rgba(168, 85, 247, 0.16);
-      --purple-border: rgba(192, 132, 252, 0.42);
+      --amber-bg: rgba(245, 158, 11, 0.16);
       --red: #ef4444;
-      --red-soft: rgba(239, 68, 68, 0.16);
-      --red-border: rgba(239, 68, 68, 0.42);
-      --radius-lg: 16px;
-      --radius-md: 12px;
-      --radius-sm: 10px;
+      --red-bg: rgba(239, 68, 68, 0.16);
+      --blue: #3b82f6;
+      --radius: 14px;
     }
 
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    html, body {
-      margin: 0;
-      padding: 0;
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body {
       background: var(--bg);
       color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      font-size: 15px;
-      line-height: 1.45;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    .app-shell {
-      max-width: 540px;
-      margin: 0 auto;
       min-height: 100vh;
-      padding: 12px 14px 48px;
+      padding: 16px;
+      padding-bottom: 90px;
     }
 
-    .top-bar {
-      position: sticky;
-      top: 0;
-      z-index: 20;
-      background: rgba(11, 17, 32, 0.94);
-      backdrop-filter: blur(8px);
-      padding: 8px 0 10px;
+    .app { max-width: 560px; margin: 0 auto; }
+
+    /* Header */
+    .header {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      gap: 10px;
+      align-items: center;
+      margin-bottom: 14px;
     }
-
-    .app-title {
-      margin: 0;
-      font-size: 1.15rem;
-      font-weight: 800;
-      letter-spacing: -0.01em;
-    }
-
+    .header h1 { font-size: 1.2rem; font-weight: 700; }
     .today-pill {
-      background: var(--green-soft);
-      border: 1px solid var(--green-border);
+      background: var(--green-bg);
+      border: 1px solid rgba(34, 197, 94, 0.35);
       color: #86efac;
-      font-size: 0.82rem;
-      font-weight: 700;
-      padding: 5px 11px;
+      padding: 6px 12px;
       border-radius: 999px;
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
+      font-size: 0.85rem;
+      font-weight: 600;
     }
 
-    .tab-bar {
+    /* Tabs */
+    .tabs {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 6px;
       background: var(--surface);
       border: 1px solid var(--border);
       padding: 5px;
-      border-radius: var(--radius-md);
-      margin-bottom: 14px;
+      border-radius: var(--radius);
+      margin-bottom: 16px;
     }
-
     .tab-btn {
-      min-height: 40px;
-      border: 1px solid transparent;
       background: transparent;
+      border: none;
       color: var(--muted);
-      font-weight: 700;
-      font-size: 0.9rem;
-      border-radius: var(--radius-sm);
+      padding: 10px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.92rem;
       cursor: pointer;
     }
-
     .tab-btn.active {
       background: var(--surface-2);
       color: var(--text);
-      border-color: var(--border);
     }
 
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* Cards & Buttons */
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+    .card-title {
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+    .btn {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 0.98rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-primary {
+      background: var(--green);
+      color: #fff;
+      font-size: 1.05rem;
+      padding: 18px;
+      margin-bottom: 12px;
+    }
+    .btn-secondary {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-sm {
+      width: auto;
+      padding: 7px 11px;
+      font-size: 0.8rem;
+      border-radius: 8px;
+    }
+    .btn-danger {
+      background: var(--red-bg);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+    .btn-outline {
+      background: transparent;
+      color: #93c5fd;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+    }
+
+    /* Inputs */
+    label {
+      display: block;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    input, select, textarea {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 11px 12px;
+      font-size: 0.95rem;
+      margin-bottom: 12px;
+    }
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* Badges & Notices */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-warn {
+      background: var(--amber-bg);
+      color: #fcd34d;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+    .badge-ok {
+      background: var(--green-bg);
+      color: #86efac;
+      border: 1px solid rgba(34, 197, 94, 0.35);
+    }
+    .badge-repeat {
+      background: rgba(59, 130, 246, 0.16);
+      color: #93c5fd;
+      border: 1px solid rgba(59, 130, 246, 0.38);
+      cursor: pointer;
+    }
+
+    .notice {
+      background: var(--amber-bg);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fde68a;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+    }
+
+    /* List Items */
+    .item-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .item-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .item-title { font-weight: 700; font-size: 0.98rem; }
+    .item-sub { color: var(--muted); font-size: 0.84rem; margin-top: 2px; }
+    .item-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .linked-box {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--border);
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .linked-row {
+      padding: 6px 8px;
+      background: rgba(15, 25, 45, 0.7);
+      border-radius: 8px;
+      margin-top: 6px;
+      color: var(--text);
+    }
+
+    /* Active Timer Banner */
+    .active-banner {
+      background: rgba(22, 163, 74, 0.14);
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      border-radius: var(--radius);
       padding: 14px;
       margin-bottom: 14px;
     }
 
-    .card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-
-    .card-title {
-      margin: 0;
-      font-size: 0.88rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--muted);
-    }
-
-    .btn-start-big {
-      width: 100%;
-      min-height: 62px;
-      border: none;
-      border-radius: var(--radius-lg);
-      background: var(--green);
-      color: #ffffff;
-      font-size: 1.15rem;
-      font-weight: 900;
-      letter-spacing: 0.03em;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      box-shadow: 0 8px 24px rgba(22, 163, 74, 0.28);
-      margin-bottom: 14px;
-    }
-
-    .btn-start-big:active {
-      background: var(--green-hover);
-      transform: scale(0.99);
-    }
-
-    .btn {
-      min-height: 44px;
-      padding: 9px 13px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border);
-      background: var(--surface-2);
+    /* Undo Toast */
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      width: calc(100% - 32px);
+      max-width: 520px;
+      background: #1e293b;
+      border: 1px solid #475569;
       color: var(--text);
-      font-weight: 700;
-      font-size: 0.88rem;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-
-    .btn-sm {
-      min-height: 36px;
-      padding: 6px 10px;
-      font-size: 0.8rem;
-    }
-
-    .btn-full {
-      width: 100%;
-    }
-
-    .btn-green {
-      background: var(--green);
-      border-color: var(--green);
-      color: #fff;
-    }
-
-    .btn-amber {
-      background: var(--amber-soft);
-      border-color: var(--amber-border);
-      color: #fcd34d;
-    }
-
-    .btn-purple {
-      background: var(--purple-soft);
-      border-color: var(--purple-border);
-      color: #e9d5ff;
-    }
-
-    .btn-red {
-      background: var(--red-soft);
-      border-color: var(--red-border);
-      color: #fca5a5;
-    }
-
-    .btn-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .field-group {
-      margin-bottom: 12px;
-    }
-
-    .field-label {
-      display: block;
-      font-size: 0.78rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--muted);
-      margin-bottom: 5px;
-    }
-
-    input[type="text"],
-    input[type="number"],
-    input[type="date"],
-    input[type="time"],
-    select,
-    textarea {
-      width: 100%;
-      min-height: 44px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      color: var(--text);
-      padding: 9px 11px;
-      font-size: 0.92rem;
-      font-family: inherit;
-    }
-
-    textarea {
-      min-height: 76px;
-      resize: vertical;
-    }
-
-    .timer-readout {
-      font-size: 1.75rem;
-      font-weight: 900;
-      font-variant-numeric: tabular-nums;
-      color: #86efac;
-      letter-spacing: 0.02em;
-    }
-
-    .meta-line {
-      font-size: 0.82rem;
-      color: var(--muted);
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 0.74rem;
-      font-weight: 700;
-      background: var(--surface-3);
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
-
-    .badge-na {
-      color: var(--muted);
-      border-style: dashed;
-    }
-
-    .badge-part {
-      background: var(--purple-soft);
-      border-color: var(--purple-border);
-      color: #e9d5ff;
-    }
-
-    .badge-warn {
-      background: var(--amber-soft);
-      border-color: var(--amber-border);
-      color: #fcd34d;
-    }
-
-    .badge-ok {
-      background: var(--green-soft);
-      border-color: var(--green-border);
-      color: #86efac;
-    }
-
-    .chip-strip {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .chip {
-      min-height: 36px;
-      padding: 6px 11px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: var(--bg);
-      color: var(--text);
-      font-size: 0.82rem;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .chip.selected {
-      background: var(--green-soft);
-      border-color: var(--green-border);
-      color: #86efac;
-    }
-
-    .chip.subtle-option {
-      border-style: dashed;
-      color: var(--muted);
-    }
-
-    .chip.subtle-option.selected {
-      border-style: solid;
-      color: #86efac;
-    }
-
-    .paused-item {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 10px 12px;
-      margin-bottom: 8px;
-    }
-
-    .paused-item:last-child {
-      margin-bottom: 0;
-    }
-
-    .parts-box {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 11px;
-      margin-bottom: 12px;
-    }
-
-    .part-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      padding: 8px 0;
-      border-top: 1px solid var(--border);
-    }
-
-    .part-row:first-child {
-      border-top: none;
-      padding-top: 0;
-    }
-
-    .qty-controls {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      flex-shrink: 0;
-    }
-
-    .qty-num {
-      min-width: 26px;
-      text-align: center;
-      font-weight: 800;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .history-group {
-      margin-bottom: 14px;
-    }
-
-    .history-group-header {
-      display: flex;
+      padding: 12px 14px;
+      border-radius: 12px;
+      display: none;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.8rem;
-      font-weight: 800;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      padding: 0 2px 6px;
+      gap: 10px;
+      z-index: 50;
     }
-
-    .history-row {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 11px 12px;
-      margin-bottom: 8px;
-      cursor: pointer;
-    }
-
-    .history-row-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 8px;
-    }
-
-    .hours-pill {
-      background: var(--green-soft);
-      border: 1px solid var(--green-border);
-      color: #86efac;
-      font-weight: 800;
-      font-size: 0.8rem;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
-    }
-
-    .history-details {
-      margin-top: 9px;
-      padding-top: 9px;
-      border-top: 1px solid var(--border);
-      font-size: 0.85rem;
-    }
-
-    .confirm-banner {
-      background: var(--amber-soft);
-      border: 1px solid var(--amber-border);
-      border-radius: var(--radius-md);
-      padding: 10px 12px;
-      margin-bottom: 12px;
-    }
-
-    .filter-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-
-    .id-readout-box {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 8px 10px;
-      margin-bottom: 12px;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 6px;
-    }
+    .toast.show { display: flex; }
   </style>
 </head>
 <body>
-  <div class="app-shell">
-    <header class="top-bar">
-      <h1 class="app-title">Shift &amp; Machine Log</h1>
-      <span class="today-pill" id="todayHoursPill">Today: 0.00h</span>
-    </header>
-
-    <nav class="tab-bar" aria-label="Primary views">
-      <button type="button" class="tab-btn active" data-tab="log" onclick="switchTab('log')">Log</button>
-      <button type="button" class="tab-btn" data-tab="history" onclick="switchTab('history')">History</button>
-      <button type="button" class="tab-btn" data-tab="machines" onclick="switchTab('machines')">Machines</button>
-    </nav>
-
-    <div id="confirmBanner" class="confirm-banner hidden">
-      <div id="confirmText" class="meta-line" style="color: var(--text); font-weight: 700; margin-bottom: 8px;"></div>
-      <div class="btn-row" style="margin-top: 0;">
-        <button type="button" class="btn btn-sm btn-red" id="confirmYesBtn">Confirm</button>
-        <button type="button" class="btn btn-sm" onclick="hideConfirm()">Cancel</button>
-      </div>
+  <div class="app">
+    <div class="header">
+      <h1>Shift &amp; Machine Log</h1>
+      <div class="today-pill" id="todayHoursPill">Today: 0.00h</div>
     </div>
 
-    <!-- TAB 1: LOG -->
-    <section id="tab-log">
-      <button type="button" class="btn-start-big" id="startWorkBtn" onclick="startWork()">
-        &#9654; START WORK
-      </button>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="log">Log</button>
+      <button class="tab-btn" data-tab="history">History</button>
+      <button class="tab-btn" data-tab="machines">Machines</button>
+    </div>
 
-      <!-- Active Job Panel -->
-      <div id="activeJobCard" class="card hidden">
-        <div class="card-header">
-          <h2 class="card-title">Active Job</h2>
-          <span class="meta-line" id="activeStartedLabel">Started --:--</span>
-        </div>
+    <!-- LOG TAB: Keeps original Start Work / Manual Entry start flow -->
+    <section class="panel active" id="panel-log">
+      <div id="activeWorkBox" class="active-banner" style="display:none;"></div>
 
-        <div class="field-group" style="display:flex; align-items:baseline; justify-content:space-between; gap:8px;">
-          <div class="timer-readout" id="activeTimerText">00:00:00</div>
-          <span class="meta-line" id="activeSelectionSummary">No room selected</span>
-        </div>
+      <button class="btn btn-primary" id="startWorkBtn">&#9654; START WORK</button>
 
-        <div class="id-readout-box" id="activeIdReadout"></div>
-
-        <div class="field-group">
-          <label class="field-label">1. Room (Required)</label>
-          <div class="chip-strip" id="activeRoomChips"></div>
-        </div>
-
-        <div class="field-group">
-          <label class="field-label">2. Line / Process Line (Optional)</label>
-          <div class="chip-strip" id="activeLineChips"></div>
-        </div>
-
-        <div class="field-group">
-          <label class="field-label">3. Machine / Asset (Optional)</label>
-          <div class="chip-strip" id="activeMachineChips"></div>
-        </div>
-
-        <!-- Parts Used + Bin Label Photo Auto-Fill -->
-        <div class="parts-box">
-          <div class="card-header" style="margin-bottom: 8px;">
-            <span class="field-label" style="margin:0;">Parts Used</span>
-            <span class="badge badge-part" id="activePartsCountBadge">0 parts</span>
-          </div>
-
-          <div class="btn-row" style="margin-top: 0; margin-bottom: 8px;">
-            <label class="btn btn-sm btn-purple" style="margin:0; cursor:pointer;">
-              Snap / Photo Bin Label
-              <input type="file" accept="image/*" capture="environment" class="hidden" id="activePhotoInput" onchange="handleBinPhoto(event, 'active')" />
-            </label>
-            <button type="button" class="btn btn-sm" onclick="toggleManualPartForm('active')">+ Manual Part</button>
-          </div>
-
-          <div id="activePhotoPreviewWrap" class="hidden" style="margin-bottom: 8px;">
-            <img id="activePhotoPreview" alt="Bin label preview" style="width:100%; max-height:140px; object-fit:cover; border-radius:8px; border:1px solid var(--border);" />
-            <div class="meta-line" id="activeScanStatus" style="margin-top:4px;"></div>
-          </div>
-
-          <div id="activeManualPartForm" class="hidden" style="margin-bottom: 8px;">
-            <div class="filter-grid">
-              <input type="text" id="activePartNoInput" placeholder="Part No. (e.g. 801177466)" />
-              <input type="text" id="activeBinInput" placeholder="Bin (e.g. 24C-01-02)" />
-            </div>
-            <div class="filter-grid">
-              <input type="text" id="activePartNameInput" placeholder="Part Name / OEM" />
-              <input type="number" id="activePartQtyInput" min="1" value="1" placeholder="Qty" />
-            </div>
-            <button type="button" class="btn btn-sm btn-green btn-full" onclick="addManualPart('active')">Add Part to Job</button>
-          </div>
-
-          <div id="activePartsList"></div>
-        </div>
-
-        <div class="field-group">
-          <label class="field-label" for="activeNotesInput">Work Notes</label>
-          <textarea id="activeNotesInput" placeholder="What was done on this job..."></textarea>
-        </div>
-
-        <button type="button" class="btn btn-green btn-full" onclick="finishActiveJob()">FINISH &amp; SAVE LOG</button>
-        <div class="btn-row">
-          <button type="button" class="btn btn-amber" onclick="pauseActiveJob()">Pause Job</button>
-          <button type="button" class="btn btn-red" onclick="confirmDiscardActive()">Discard</button>
-        </div>
-      </div>
-
-      <!-- Paused Jobs Queue -->
-      <div id="pausedQueueCard" class="card hidden">
-        <div class="card-header">
-          <h2 class="card-title">Paused Jobs Queue</h2>
-          <span class="meta-line" id="pausedCountLabel">0 paused</span>
-        </div>
-        <div id="pausedQueueList"></div>
-      </div>
-
-      <!-- Manual / Past Entry Toggle -->
       <div class="card">
-        <button type="button" class="btn btn-full" id="manualToggleBtn" onclick="toggleManualDrawer()">
-          Log Manual / Past Entry
-        </button>
+        <button class="btn btn-secondary" id="manualEntryBtn">Log Manual / Past Entry</button>
+      </div>
 
-        <div id="manualDrawer" class="hidden" style="margin-top: 12px;">
-          <div class="filter-grid">
+      <!-- Job Entry Form (shown only after clicking Start Work or Manual Entry) -->
+      <div class="card" id="jobFormCard" style="display:none;">
+        <div class="card-title" id="jobFormTitle">Job Details</div>
+
+        <label for="jobRoom">Room ID</label>
+        <input type="text" id="jobRoom" placeholder="e.g. Prep, Retail 1, Mill Room" />
+
+        <div class="row-2">
+          <div>
+            <label for="jobLine">Line (Optional)</label>
+            <input type="text" id="jobLine" placeholder="e.g. DSI, AMF 4, Thigh Deboning" />
+          </div>
+          <div>
+            <label for="jobMachineSelect">Saved Machine (Optional)</label>
+            <select id="jobMachineSelect">
+              <option value="">-- Unassigned / Custom --</option>
+            </select>
+          </div>
+        </div>
+
+        <label for="jobMachineName">Machine Name</label>
+        <input type="text" id="jobMachineName" placeholder="e.g. DSI, AMF 4, RTL-001" />
+
+        <div id="logAssetNotice" class="notice" style="display:none;"></div>
+
+        <div id="manualFields">
+          <div class="row-2">
             <div>
-              <label class="field-label" for="manualDate">Date</label>
-              <input type="date" id="manualDate" />
+              <label for="jobDate">Date</label>
+              <input type="date" id="jobDate" />
             </div>
             <div>
-              <label class="field-label" for="manualTargetSelect">Room / Line / Machine</label>
-              <select id="manualTargetSelect"></select>
+              <label for="jobHours">Hours Worked</label>
+              <input type="number" step="0.01" min="0.01" id="jobHours" placeholder="e.g. 1.50" />
             </div>
           </div>
+        </div>
 
-          <div class="filter-grid">
-            <div>
-              <label class="field-label" for="manualStart">Start Time</label>
-              <input type="time" id="manualStart" />
-            </div>
-            <div>
-              <label class="field-label" for="manualEnd">Finish Time</label>
-              <input type="time" id="manualEnd" />
-            </div>
-          </div>
+        <label for="jobNotes">Notes</label>
+        <textarea id="jobNotes" rows="2" placeholder="Fault details, adjustment, callback notes..."></textarea>
 
-          <div class="parts-box">
-            <div class="card-header" style="margin-bottom: 8px;">
-              <span class="field-label" style="margin:0;">Parts Used</span>
-              <span class="badge badge-part" id="manualPartsCountBadge">0 parts</span>
-            </div>
-            <div class="btn-row" style="margin-top: 0; margin-bottom: 8px;">
-              <label class="btn btn-sm btn-purple" style="margin:0; cursor:pointer;">
-                Snap / Photo Bin Label
-                <input type="file" accept="image/*" capture="environment" class="hidden" id="manualPhotoInput" onchange="handleBinPhoto(event, 'manual')" />
-              </label>
-              <button type="button" class="btn btn-sm" onclick="toggleManualPartForm('manual')">+ Manual Part</button>
-            </div>
-            <div id="manualPhotoPreviewWrap" class="hidden" style="margin-bottom: 8px;">
-              <img id="manualPhotoPreview" alt="Manual bin label preview" style="width:100%; max-height:140px; object-fit:cover; border-radius:8px; border:1px solid var(--border);" />
-              <div class="meta-line" id="manualScanStatus" style="margin-top:4px;"></div>
-            </div>
-            <div id="manualManualPartForm" class="hidden" style="margin-bottom: 8px;">
-              <div class="filter-grid">
-                <input type="text" id="manualPartNoInput" placeholder="Part No. (e.g. 801237491)" />
-                <input type="text" id="manualBinInput" placeholder="Bin (e.g. 24B-01-03)" />
-              </div>
-              <div class="filter-grid">
-                <input type="text" id="manualPartNameInput" placeholder="Part Name / OEM" />
-                <input type="number" id="manualPartQtyInput" min="1" value="1" placeholder="Qty" />
-              </div>
-              <button type="button" class="btn btn-sm btn-green btn-full" onclick="addManualPart('manual')">Add Part to Log</button>
-            </div>
-            <div id="manualPartsList"></div>
-          </div>
+        <label for="jobParts">Parts Logged (comma separated)</label>
+        <input type="text" id="jobParts" placeholder="e.g. Conveyor belt, O-ring kit" />
 
-          <div class="field-group">
-            <label class="field-label" for="manualNotes">Work Notes</label>
-            <textarea id="manualNotes" placeholder="What was done..."></textarea>
-          </div>
-
-          <button type="button" class="btn btn-green btn-full" onclick="saveManualLog()">Save Manual Log</button>
+        <div class="row-2">
+          <button class="btn btn-secondary" id="cancelJobBtn" type="button">Cancel</button>
+          <button class="btn" id="saveJobBtn" type="button" style="background:var(--green);color:#fff;">Save Job</button>
         </div>
       </div>
     </section>
 
-    <!-- TAB 2: HISTORY -->
-    <section id="tab-history" class="hidden">
+    <!-- HISTORY TAB -->
+    <section class="panel" id="panel-history">
       <div class="card">
-        <div class="btn-row" style="margin-top: 0; margin-bottom: 8px;">
-          <button type="button" class="btn btn-sm btn-green" id="filterAllBtn" onclick="setHistoryScope('all')">All Logs</button>
-          <button type="button" class="btn btn-sm" id="filterTodayBtn" onclick="setHistoryScope('today')">Today Only</button>
+        <div class="row-2">
+          <button class="btn btn-sm" id="filterAllBtn" style="background:var(--green);color:#fff;">All Logs</button>
+          <button class="btn btn-sm btn-secondary" id="filterTodayBtn">Today Only</button>
         </div>
-        <div class="filter-grid">
-          <select id="historyRoomFilter" onchange="renderHistory()">
-            <option value="">All Rooms</option>
-          </select>
-          <input type="text" id="historySearchInput" placeholder="Search room, line, machine, ID..." oninput="renderHistory()" />
+        <div style="margin-top:10px;">
+          <input type="text" id="historySearch" placeholder="Search room, line, machine, asset ID, notes..." style="margin-bottom:0;" />
         </div>
-        <button type="button" class="btn btn-sm btn-full" onclick="exportCsv()">Export CSV</button>
       </div>
       <div id="historyList"></div>
     </section>
 
-    <!-- TAB 3: MACHINES -->
-    <section id="tab-machines" class="hidden">
-      <!-- ID Coverage Summary -->
+    <!-- MACHINES TAB -->
+    <section class="panel" id="panel-machines">
       <div class="card">
-        <div class="card-header" style="margin-bottom: 6px;">
-          <h2 class="card-title">Machine ID Coverage</h2>
-          <span class="badge badge-warn" id="idCoveragePctBadge">0% tagged</span>
-        </div>
-        <div class="meta-line" id="idCoverageSummaryText" style="margin-bottom: 10px;">
-          0 / 0 machines have IDs · 0 missing IDs
-        </div>
-        <button type="button" class="btn btn-sm btn-amber btn-full" id="missingIdFilterBtn" onclick="toggleMissingIdFilter()">
-          Show Missing IDs Only
-        </button>
+        <div class="card-title">Add Machine (Asset ID Optional Now)</div>
+        <label for="newMachineRoom">Room ID</label>
+        <input type="text" id="newMachineRoom" placeholder="e.g. Prep" />
+
+        <label for="newMachineLine">Line (Optional — can be a machine line like DSI or AMF 4)</label>
+        <input type="text" id="newMachineLine" placeholder="e.g. DSI, Nandos Line 1, Thigh Deboning Line" />
+
+        <label for="newMachineName">Machine Name</label>
+        <input type="text" id="newMachineName" placeholder="e.g. DSI, AMF 4, RTL-001" />
+
+        <button class="btn" id="saveMachineBtn" style="background:var(--green);color:#fff;">Save Machine</button>
       </div>
 
-      <!-- Room IDs -->
       <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">Room IDs</h2>
-          <span class="meta-line">Room-level fallback</span>
-        </div>
-        <div class="filter-grid">
-          <input type="text" id="roomIdNameInput" placeholder="Room (e.g. Retail 1)" />
-          <input type="text" id="roomIdCodeInput" placeholder="Room ID (e.g. Retail 1)" />
-        </div>
-        <button type="button" class="btn btn-sm btn-green btn-full" onclick="saveRoomId()">Save Room ID</button>
-        <div id="roomIdsList" style="margin-top: 8px;"></div>
-      </div>
-
-      <!-- Add Machine -->
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">Add Machine / Asset</h2>
-          <button type="button" class="btn btn-sm btn-red" onclick="confirmClearMachines()">Clear Sample Data</button>
-        </div>
-
-        <div class="field-group">
-          <label class="field-label" for="machineRoomInput">Room (Required)</label>
-          <input type="text" id="machineRoomInput" placeholder="e.g. Deboning or Retail 1" />
-        </div>
-        <div class="field-group">
-          <label class="field-label" for="machineLineInput">Line / Process Line (Optional)</label>
-          <input type="text" id="machineLineInput" placeholder="e.g. DSI Line, Drum Deboning Line, Nandos Line 1" />
-        </div>
-        <div class="field-group">
-          <label class="field-label" for="machineNameInput">Machine / Asset (Optional for room-only entry)</label>
-          <input type="text" id="machineNameInput" placeholder="e.g. AMF 4 or leave blank for room/line" />
-        </div>
-        <div class="field-group">
-          <label class="field-label" for="machineAssetIdInput">Machine ID (Optional)</label>
-          <input type="text" id="machineAssetIdInput" placeholder="e.g. M-104 (leave blank if untagged)" />
-        </div>
-        <button type="button" class="btn btn-green btn-full" onclick="addMachine()">Save Entry</button>
-      </div>
-
-      <!-- Saved Entries -->
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">Saved Rooms, Lines &amp; Machines</h2>
-          <span class="meta-line" id="machineCountLabel">0 entries</span>
-        </div>
+        <div class="card-title">Saved Machines &amp; Asset Coverage</div>
+        <div id="missingAssetSummary" class="item-sub" style="margin-bottom:10px;"></div>
         <div id="machinesList"></div>
       </div>
     </section>
   </div>
 
+  <!-- Undo Toast for History Deletes -->
+  <div class="toast" id="undoToast">
+    <span id="undoToastText">Job deleted</span>
+    <button class="btn btn-sm btn-outline" id="undoDeleteBtn">Undo</button>
+  </div>
+
   <script>
-    const STORAGE_KEYS = {
-      machines: 'sml_machines_v2',
-      roomIds: 'sml_room_ids_v1',
-      logs: 'sml_logs_v2',
-      active: 'sml_active_v2',
-      paused: 'sml_paused_v2'
-    };
+    const STORAGE_KEY = 'shift_machine_log_v2';
+    const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
-    const DEFAULT_ROOM_IDS = {
-      'Retail 1': 'Retail 1',
-      'Deboning': 'DEB-01',
-      'Packing Hall A': 'PACK-A'
-    };
+    let state = loadState();
+    let activeTimer = null; // { startTime, room, line, machineId, machineName }
+    let historyFilter = 'all';
+    let lastDeleted = null; // { item, index, timerId }
+    let expandedRepeatKey = null;
 
-    const DEFAULT_MACHINES = [
-      { id: 'm1', room: 'Deboning', line: 'Drum Deboning Line', name: 'AMF 4', assetId: 'M-404' },
-      { id: 'm2', room: 'Deboning', line: 'Thigh Deboning Line', name: 'Thigh Line Unit 1', assetId: '' },
-      { id: 'm3', room: 'Packing Hall A', line: 'DSI Line', name: 'DSI Portioner 01', assetId: 'M-104' },
-      { id: 'm4', room: 'Packing Hall A', line: 'Nandos Line 1', name: 'Tray Sealer M-108', assetId: '' },
-      { id: 'm5', room: 'Packing Hall A', line: 'Nandos Line 2', name: 'Checkweigher CW-21', assetId: 'M-210' },
-      { id: 'm6', room: 'Retail 1', line: '', name: '', assetId: '' }
-    ];
-
-    let machines = loadJson(STORAGE_KEYS.machines, DEFAULT_MACHINES);
-    let roomIds = loadJson(STORAGE_KEYS.roomIds, DEFAULT_ROOM_IDS);
-    let logs = loadJson(STORAGE_KEYS.logs, []);
-    let activeJob = loadJson(STORAGE_KEYS.active, null);
-    let pausedJobs = loadJson(STORAGE_KEYS.paused, []);
-    let manualParts = [];
-    let historyScope = 'all';
-    let missingIdOnly = false;
-    let expandedLogId = null;
-
-    let selectedRoom = '';
-    let selectedLine = '__UNSET__'; // '__UNSET__' = not chosen yet, '' = explicitly no line (room-only), string = line name
-    let selectedMachineId = '__UNSET__'; // '__UNSET__' = not chosen yet, '' = explicitly no machine, string = machine id
-    let timerInterval = null;
-
-    function loadJson(key, fallback) {
+    function loadState() {
       try {
-        const raw = localStorage.getItem(key);
-        return raw ? JSON.parse(raw) : fallback;
-      } catch (_) {
-        return fallback;
-      }
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      return {
+        machines: [
+          {
+            id: 'm-1',
+            room: 'Retail 1',
+            line: '',
+            name: 'RTL-001',
+            assetId: 'AST-1042'
+          }
+        ],
+        logs: []
+      };
     }
 
     function saveState() {
-      localStorage.setItem(STORAGE_KEYS.machines, JSON.stringify(machines));
-      localStorage.setItem(STORAGE_KEYS.roomIds, JSON.stringify(roomIds));
-      localStorage.setItem(STORAGE_KEYS.logs, JSON.stringify(logs));
-      localStorage.setItem(STORAGE_KEYS.active, JSON.stringify(activeJob));
-      localStorage.setItem(STORAGE_KEYS.paused, JSON.stringify(pausedJobs));
-      updateTodayHours();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
 
-    function todayIso() {
-      const now = new Date();
-      const y = now.getFullYear();
-      const m = String(now.getMonth() + 1).padStart(2, '0');
-      const d = String(now.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
+    function todayISO() {
+      return new Date().toISOString().slice(0, 10);
     }
 
-    function formatDuration(ms) {
-      const totalSec = Math.max(0, Math.floor(ms / 1000));
-      const h = String(Math.floor(totalSec / 3600)).padStart(2, '0');
-      const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
-      const s = String(totalSec % 60).padStart(2, '0');
-      return `${h}:${m}:${s}`;
+    function updateHeaderHours() {
+      const today = todayISO();
+      const total = state.logs
+        .filter(l => l.date === today)
+        .reduce((sum, l) => sum + (Number(l.hours) || 0), 0);
+      document.getElementById('todayHoursPill').textContent = `Today: ${total.toFixed(2)}h`;
     }
 
-    function getActiveElapsedMs() {
-      if (!activeJob) return 0;
-      return (activeJob.accumulatedMs || 0) + (Date.now() - activeJob.resumedAt);
+    // Machine key for 24h linking (prefers assetId, falls back to room+line+name)
+    function getMachineIdentity(entry) {
+      const asset = (entry.assetId || '').trim().toLowerCase();
+      if (asset) return `asset:${asset}`;
+      const room = (entry.room || '').trim().toLowerCase();
+      const line = (entry.line || '').trim().toLowerCase();
+      const name = (entry.machineName || '').trim().toLowerCase();
+      return `fallback:${room}|${line}|${name}`;
     }
 
-    function updateTodayHours() {
-      const t = todayIso();
-      const totalMs = logs
-        .filter((l) => l.date === t)
-        .reduce((acc, l) => acc + (l.durationMs || 0), 0);
-      const hours = (totalMs / 3600000).toFixed(2);
-      document.getElementById('todayHoursPill').textContent = `Today: ${hours}h`;
-    }
-
-    function switchTab(tab) {
-      document.querySelectorAll('.tab-btn').forEach((btn) => {
-        btn.classList.toggle('active', btn.dataset.tab === tab);
+    // Tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(`panel-${btn.dataset.tab}`).classList.add('active');
+        if (btn.dataset.tab === 'history') renderHistory();
+        if (btn.dataset.tab === 'machines') renderMachines();
       });
-      ['log', 'history', 'machines'].forEach((name) => {
-        document.getElementById(`tab-${name}`).classList.toggle('hidden', name !== tab);
+    });
+
+    // Log Tab: Start Work / Manual Entry
+    function populateMachineSelect() {
+      const sel = document.getElementById('jobMachineSelect');
+      sel.innerHTML = '<option value="">-- Unassigned / Custom --</option>';
+      state.machines.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        const missingTag = m.assetId ? ` [${m.assetId}]` : ' [Machine ID missing]';
+        opt.textContent = `${m.name}${missingTag} (${m.room}${m.line ? ' > ' + m.line : ''})`;
+        sel.appendChild(opt);
       });
-      if (tab === 'history') renderHistory();
-      if (tab === 'machines') renderMachines();
     }
 
-    function showConfirm(message, onConfirm) {
-      document.getElementById('confirmText').textContent = message;
-      const yesBtn = document.getElementById('confirmYesBtn');
-      yesBtn.onclick = () => {
-        hideConfirm();
-        onConfirm();
-      };
-      document.getElementById('confirmBanner').classList.remove('hidden');
-    }
+    function updateLogAssetNotice() {
+      const notice = document.getElementById('logAssetNotice');
+      const selectedId = document.getElementById('jobMachineSelect').value;
+      const roomVal = document.getElementById('jobRoom').value.trim() || 'Unspecified';
+      const machineName = document.getElementById('jobMachineName').value.trim();
 
-    function hideConfirm() {
-      document.getElementById('confirmBanner').classList.add('hidden');
-    }
-
-    function resolveTargetInfo(room, line, machineId) {
-      const machine = machineId ? machines.find((m) => m.id === machineId) : null;
-      const effectiveRoom = machine ? machine.room : (room || '');
-      const effectiveLine = machine ? (machine.line || '') : (line || '');
-      const effectiveMachineName = machine ? (machine.name || '') : '';
-      const roomIdVal = (roomIds[effectiveRoom] || '').trim();
-
-      let label = 'No room selected';
-      if (effectiveRoom) {
-        const parts = [effectiveRoom];
-        if (effectiveLine) parts.push(effectiveLine);
-        if (effectiveMachineName) parts.push(effectiveMachineName);
-        label = parts.join(' > ');
-      }
-
-      let idStatusText = 'No ID';
-      let idState = 'none'; // 'machine' | 'missing_machine_with_room' | 'room' | 'none'
-
-      if (machine) {
-        const mId = (machine.assetId || '').trim();
-        if (mId) {
-          idStatusText = `Machine ID: ${mId}`;
-          idState = 'machine';
-        } else if (roomIdVal) {
-          idStatusText = `Room ID: ${roomIdVal} · Machine ID missing`;
-          idState = 'missing_machine_with_room';
-        } else {
-          idStatusText = 'Machine ID missing';
-          idState = 'none';
-        }
-      } else if (effectiveRoom) {
-        if (roomIdVal) {
-          idStatusText = `Room ID: ${roomIdVal}`;
-          idState = 'room';
-        } else {
-          idStatusText = 'No ID';
-          idState = 'none';
-        }
-      }
-
-      return {
-        room: effectiveRoom,
-        line: effectiveLine,
-        machineId: machine ? machine.id : '',
-        machineName: effectiveMachineName,
-        label,
-        roomId: roomIdVal,
-        idStatusText,
-        idState
-      };
-    }
-
-    function startWork() {
-      if (activeJob) return;
-      const now = Date.now();
-      activeJob = {
-        id: 'job_' + now,
-        date: todayIso(),
-        startedAt: now,
-        resumedAt: now,
-        accumulatedMs: 0,
-        room: '',
-        line: '',
-        machineId: '',
-        notes: '',
-        parts: []
-      };
-      selectedRoom = '';
-      selectedLine = '__UNSET__';
-      selectedMachineId = '__UNSET__';
-      saveState();
-      renderActiveJob();
-      startTimerLoop();
-    }
-
-    function startTimerLoop() {
-      clearInterval(timerInterval);
-      timerInterval = setInterval(() => {
-        if (!activeJob) {
-          clearInterval(timerInterval);
+      if (selectedId) {
+        const m = state.machines.find(x => x.id === selectedId);
+        if (m && !m.assetId) {
+          notice.style.display = 'block';
+          notice.innerHTML = `<strong>Machine ID missing</strong> &middot; Room ID: <strong>${escapeHtml(m.room)}</strong>. You can log now and add the asset ID later in Machines.`;
           return;
         }
-        document.getElementById('activeTimerText').textContent = formatDuration(getActiveElapsedMs());
-      }, 1000);
-    }
-
-    function renderActiveJob() {
-      const card = document.getElementById('activeJobCard');
-      const startBtn = document.getElementById('startWorkBtn');
-      if (!activeJob) {
-        card.classList.add('hidden');
-        startBtn.classList.remove('hidden');
-        renderPausedQueue();
+      } else if (machineName) {
+        notice.style.display = 'block';
+        notice.innerHTML = `<strong>Machine ID missing</strong> &middot; Room ID: <strong>${escapeHtml(roomVal)}</strong>.`;
         return;
       }
+      notice.style.display = 'none';
+    }
 
-      startBtn.classList.add('hidden');
-      card.classList.remove('hidden');
-
-      const startedDate = new Date(activeJob.startedAt);
-      document.getElementById('activeStartedLabel').textContent =
-        'Started ' + startedDate.toTimeString().slice(0, 5);
-      document.getElementById('activeTimerText').textContent = formatDuration(getActiveElapsedMs());
-      document.getElementById('activeNotesInput').value = activeJob.notes || '';
-
-      if (activeJob.room) selectedRoom = activeJob.room;
-      if (selectedLine === '__UNSET__' && activeJob.room) {
-        selectedLine = activeJob.line || '';
+    document.getElementById('jobMachineSelect').addEventListener('change', e => {
+      const m = state.machines.find(x => x.id === e.target.value);
+      if (m) {
+        document.getElementById('jobRoom').value = m.room;
+        document.getElementById('jobLine').value = m.line || '';
+        document.getElementById('jobMachineName').value = m.name;
       }
-      if (selectedMachineId === '__UNSET__' && activeJob.room) {
-        selectedMachineId = activeJob.machineId || '';
-      }
+      updateLogAssetNotice();
+    });
+    document.getElementById('jobRoom').addEventListener('input', updateLogAssetNotice);
+    document.getElementById('jobMachineName').addEventListener('input', updateLogAssetNotice);
 
-      // 1. Rooms (from roomIds + saved machines)
-      const roomSet = new Set([
-        ...Object.keys(roomIds),
-        ...machines.map((m) => m.room).filter(Boolean)
-      ]);
-      const roomWrap = document.getElementById('activeRoomChips');
-      roomWrap.innerHTML = '';
-      roomSet.forEach((room) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'chip' + (selectedRoom === room ? ' selected' : '');
-        btn.textContent = room;
-        btn.onclick = () => {
-          selectedRoom = room;
-          selectedLine = '__UNSET__';
-          selectedMachineId = '__UNSET__';
-          activeJob.room = room;
-          activeJob.line = '';
-          activeJob.machineId = '';
-          saveState();
-          renderActiveJob();
-        };
-        roomWrap.appendChild(btn);
-      });
+    document.getElementById('startWorkBtn').addEventListener('click', () => {
+      populateMachineSelect();
+      document.getElementById('jobFormTitle').textContent = 'Start Job';
+      document.getElementById('manualFields').style.display = 'none';
+      document.getElementById('saveJobBtn').textContent = 'Start Timer / Log';
+      document.getElementById('jobFormCard').dataset.mode = 'timer';
+      document.getElementById('jobFormCard').style.display = 'block';
+      updateLogAssetNotice();
+    });
 
-      // 2. Optional Lines (including machine-named lines like DSI Line, Drum Deboning Line)
-      const lineWrap = document.getElementById('activeLineChips');
-      lineWrap.innerHTML = '';
-      if (selectedRoom) {
-        const noLineBtn = document.createElement('button');
-        noLineBtn.type = 'button';
-        noLineBtn.className = 'chip subtle-option' + (selectedLine === '' ? ' selected' : '');
-        noLineBtn.textContent = 'No Line (Room only)';
-        noLineBtn.onclick = () => {
-          selectedLine = '';
-          selectedMachineId = '';
-          activeJob.line = '';
-          activeJob.machineId = '';
-          saveState();
-          renderActiveJob();
-        };
-        lineWrap.appendChild(noLineBtn);
+    document.getElementById('manualEntryBtn').addEventListener('click', () => {
+      populateMachineSelect();
+      document.getElementById('jobFormTitle').textContent = 'Log Manual / Past Entry';
+      document.getElementById('manualFields').style.display = 'block';
+      document.getElementById('jobDate').value = todayISO();
+      document.getElementById('saveJobBtn').textContent = 'Save Manual Job';
+      document.getElementById('jobFormCard').dataset.mode = 'manual';
+      document.getElementById('jobFormCard').style.display = 'block';
+      updateLogAssetNotice();
+    });
 
-        const lines = [...new Set(
-          machines
-            .filter((m) => m.room === selectedRoom && m.line)
-            .map((m) => m.line)
-        )];
-        lines.forEach((line) => {
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'chip' + (selectedLine === line ? ' selected' : '');
-          btn.textContent = line;
-          btn.onclick = () => {
-            selectedLine = line;
-            selectedMachineId = '__UNSET__';
-            activeJob.line = line;
-            activeJob.machineId = '';
-            saveState();
-            renderActiveJob();
-          };
-          lineWrap.appendChild(btn);
-        });
-      }
+    document.getElementById('cancelJobBtn').addEventListener('click', () => {
+      document.getElementById('jobFormCard').style.display = 'none';
+    });
 
-      // 3. Optional Machines on selected Room / Line
-      const machineWrap = document.getElementById('activeMachineChips');
-      machineWrap.innerHTML = '';
-      if (selectedRoom && selectedLine !== '__UNSET__') {
-        const noMachineBtn = document.createElement('button');
-        noMachineBtn.type = 'button';
-        noMachineBtn.className = 'chip subtle-option' + (selectedMachineId === '' ? ' selected' : '');
-        noMachineBtn.textContent = 'No Machine';
-        noMachineBtn.onclick = () => {
-          selectedMachineId = '';
-          activeJob.machineId = '';
-          saveState();
-          renderActiveJob();
-        };
-        machineWrap.appendChild(noMachineBtn);
+    document.getElementById('saveJobBtn').addEventListener('click', () => {
+      const mode = document.getElementById('jobFormCard').dataset.mode;
+      const room = document.getElementById('jobRoom').value.trim() || 'Unassigned';
+      const line = document.getElementById('jobLine').value.trim();
+      const machineId = document.getElementById('jobMachineSelect').value;
+      const machineName = document.getElementById('jobMachineName').value.trim() || 'Unassigned Machine';
+      const notes = document.getElementById('jobNotes').value.trim();
+      const parts = document.getElementById('jobParts').value
+        .split(',')
+        .map(p => p.trim())
+        .filter(Boolean);
 
-        const filteredMachines = machines.filter((m) => {
-          if (m.room !== selectedRoom || !m.name) return false;
-          if (selectedLine === '') return !m.line;
-          return m.line === selectedLine;
-        });
+      const matchedMachine = state.machines.find(m => m.id === machineId);
+      const assetId = matchedMachine ? (matchedMachine.assetId || '') : '';
 
-        filteredMachines.forEach((m) => {
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'chip' + (activeJob.machineId === m.id ? ' selected' : '');
-          btn.textContent = m.name;
-          btn.onclick = () => {
-            selectedMachineId = m.id;
-            activeJob.machineId = m.id;
-            saveState();
-            renderActiveJob();
-          };
-          machineWrap.appendChild(btn);
-        });
-      }
-
-      const info = resolveTargetInfo(
-        selectedRoom,
-        selectedLine === '__UNSET__' ? '' : selectedLine,
-        selectedMachineId === '__UNSET__' ? '' : selectedMachineId
-      );
-
-      document.getElementById('activeSelectionSummary').textContent = info.label;
-      const idBox = document.getElementById('activeIdReadout');
-      const badgeClass =
-        info.idState === 'machine' || info.idState === 'room'
-          ? 'badge badge-ok'
-          : info.idState === 'missing_machine_with_room'
-            ? 'badge badge-warn'
-            : 'badge badge-na';
-      idBox.innerHTML = `<span class="${badgeClass}">${escapeHtml(info.idStatusText)}</span>`;
-
-      renderPartsList('active');
-      renderPausedQueue();
-    }
-
-    function pauseActiveJob() {
-      if (!activeJob) return;
-      activeJob.accumulatedMs = getActiveElapsedMs();
-      activeJob.notes = document.getElementById('activeNotesInput').value;
-      pausedJobs.unshift(activeJob);
-      activeJob = null;
-      clearInterval(timerInterval);
-      saveState();
-      renderActiveJob();
-    }
-
-    function resumePausedJob(jobId) {
-      const idx = pausedJobs.findIndex((j) => j.id === jobId);
-      if (idx === -1) return;
-      if (activeJob) {
-        pauseActiveJob();
-      }
-      const [job] = pausedJobs.splice(idx, 1);
-      job.resumedAt = Date.now();
-      activeJob = job;
-      selectedRoom = job.room || '';
-      selectedLine = job.room ? (job.line || '') : '__UNSET__';
-      selectedMachineId = job.room ? (job.machineId || '') : '__UNSET__';
-      saveState();
-      renderActiveJob();
-      startTimerLoop();
-    }
-
-    function confirmDiscardActive() {
-      showConfirm('Discard the current active job and its timer?', () => {
-        activeJob = null;
-        clearInterval(timerInterval);
-        saveState();
-        renderActiveJob();
-      });
-    }
-
-    function finishActiveJob() {
-      if (!activeJob) return;
-      const info = resolveTargetInfo(
-        selectedRoom,
-        selectedLine === '__UNSET__' ? '' : selectedLine,
-        selectedMachineId === '__UNSET__' ? '' : selectedMachineId
-      );
-      const durationMs = getActiveElapsedMs();
-      const notes = document.getElementById('activeNotesInput').value.trim();
-
-      logs.unshift({
-        id: activeJob.id,
-        date: activeJob.date || todayIso(),
-        startedAt: activeJob.startedAt,
-        finishedAt: Date.now(),
-        durationMs,
-        room: info.room || 'Unassigned',
-        line: info.line || '',
-        machineId: info.machineId || '',
-        machineName: info.machineName || '',
-        targetLabel: info.label,
-        idStatusText: info.idStatusText,
-        notes,
-        parts: activeJob.parts || []
-      });
-
-      activeJob = null;
-      clearInterval(timerInterval);
-      saveState();
-      renderActiveJob();
-      renderHistory();
-    }
-
-    function renderPausedQueue() {
-      const card = document.getElementById('pausedQueueCard');
-      const list = document.getElementById('pausedQueueList');
-      document.getElementById('pausedCountLabel').textContent = `${pausedJobs.length} paused`;
-      if (!pausedJobs.length) {
-        card.classList.add('hidden');
-        return;
-      }
-      card.classList.remove('hidden');
-      list.innerHTML = '';
-      pausedJobs.forEach((job) => {
-        const info = resolveTargetInfo(job.room, job.line, job.machineId);
-        const div = document.createElement('div');
-        div.className = 'paused-item';
-        div.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-            <div>
-              <div style="font-weight:700;">${escapeHtml(info.label)}</div>
-              <div class="meta-line">${formatDuration(job.accumulatedMs || 0)} elapsed · ${escapeHtml(info.idStatusText)}</div>
-            </div>
-            <button type="button" class="btn btn-sm btn-green" onclick="resumePausedJob('${job.id}')">Resume</button>
-          </div>
-        `;
-        list.appendChild(div);
-      });
-    }
-
-    function toggleManualDrawer() {
-      const drawer = document.getElementById('manualDrawer');
-      drawer.classList.toggle('hidden');
-      if (!drawer.classList.contains('hidden')) {
-        document.getElementById('manualDate').value = todayIso();
-        populateManualTargetSelect();
-        renderPartsList('manual');
-      }
-    }
-
-    function populateManualTargetSelect() {
-      const select = document.getElementById('manualTargetSelect');
-      select.innerHTML = '<option value="">Select Room / Line / Machine</option>';
-
-      const roomSet = new Set([
-        ...Object.keys(roomIds),
-        ...machines.map((m) => m.room).filter(Boolean)
-      ]);
-      roomSet.forEach((room) => {
-        const opt = document.createElement('option');
-        opt.value = `room::${room}`;
-        opt.textContent = `${room} (Room only)`;
-        select.appendChild(opt);
-      });
-
-      machines.forEach((m) => {
-        const info = resolveTargetInfo(m.room, m.line, m.id);
-        const opt = document.createElement('option');
-        opt.value = `machine::${m.id}`;
-        opt.textContent = info.label;
-        select.appendChild(opt);
-      });
-    }
-
-    function toggleManualPartForm(mode) {
-      const id = mode === 'active' ? 'activeManualPartForm' : 'manualManualPartForm';
-      document.getElementById(id).classList.toggle('hidden');
-    }
-
-    function addManualPart(mode) {
-      const prefix = mode === 'active' ? 'active' : 'manual';
-      const partNo = document.getElementById(`${prefix}PartNoInput`).value.trim();
-      const bin = document.getElementById(`${prefix}BinInput`).value.trim();
-      const name = document.getElementById(`${prefix}PartNameInput`).value.trim();
-      const qty = Math.max(1, parseInt(document.getElementById(`${prefix}PartQtyInput`).value || '1', 10));
-
-      if (!partNo && !name) return;
-
-      const partObj = {
-        id: 'p_' + Date.now(),
-        partNo,
-        bin,
-        name: name || partNo,
-        qty
-      };
-
-      if (mode === 'active' && activeJob) {
-        activeJob.parts = activeJob.parts || [];
-        activeJob.parts.push(partObj);
-        saveState();
-      } else {
-        manualParts.push(partObj);
-      }
-
-      document.getElementById(`${prefix}PartNoInput`).value = '';
-      document.getElementById(`${prefix}BinInput`).value = '';
-      document.getElementById(`${prefix}PartNameInput`).value = '';
-      document.getElementById(`${prefix}PartQtyInput`).value = '1';
-      renderPartsList(mode);
-    }
-
-    function changePartQty(mode, partId, delta) {
-      const targetList = mode === 'active' && activeJob ? activeJob.parts : manualParts;
-      const idx = targetList.findIndex((p) => p.id === partId);
-      if (idx === -1) return;
-      targetList[idx].qty += delta;
-      if (targetList[idx].qty <= 0) {
-        targetList.splice(idx, 1);
-      }
-      if (mode === 'active') saveState();
-      renderPartsList(mode);
-    }
-
-    function renderPartsList(mode) {
-      const targetList = mode === 'active' && activeJob ? (activeJob.parts || []) : manualParts;
-      const listEl = document.getElementById(`${mode}PartsList`);
-      const badgeEl = document.getElementById(`${mode}PartsCountBadge`);
-      badgeEl.textContent = `${targetList.length} ${targetList.length === 1 ? 'part' : 'parts'}`;
-      listEl.innerHTML = '';
-
-      targetList.forEach((p) => {
-        const row = document.createElement('div');
-        row.className = 'part-row';
-        row.innerHTML = `
-          <div>
-            <div style="font-weight:700;">${escapeHtml(p.name)}</div>
-            <div class="meta-line">${p.partNo ? 'Part: ' + escapeHtml(p.partNo) : ''}${p.bin ? ' | Bin: ' + escapeHtml(p.bin) : ''}</div>
-          </div>
-          <div class="qty-controls">
-            <button type="button" class="btn btn-sm" onclick="changePartQty('${mode}', '${p.id}', -1)">-</button>
-            <span class="qty-num">${p.qty}</span>
-            <button type="button" class="btn btn-sm" onclick="changePartQty('${mode}', '${p.id}', 1)">+</button>
-          </div>
-        `;
-        listEl.appendChild(row);
-      });
-    }
-
-    function handleBinPhoto(event, mode) {
-      const file = event.target.files && event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        document.getElementById(`${mode}PhotoPreviewWrap`).classList.remove('hidden');
-        document.getElementById(`${mode}PhotoPreview`).src = reader.result;
-        document.getElementById(`${mode}ScanStatus`).textContent =
-          'Photo attached. Tap + Manual Part to enter part details.';
-      };
-      reader.readAsDataURL(file);
-    }
-
-    function saveManualLog() {
-      const date = document.getElementById('manualDate').value || todayIso();
-      const targetVal = document.getElementById('manualTargetSelect').value;
-      const startStr = document.getElementById('manualStart').value;
-      const endStr = document.getElementById('manualEnd').value;
-      const notes = document.getElementById('manualNotes').value.trim();
-
-      let durationMs = 0;
-      let startedAt = Date.now();
-      let finishedAt = Date.now();
-      if (startStr && endStr) {
-        startedAt = new Date(`${date}T${startStr}:00`).getTime();
-        finishedAt = new Date(`${date}T${endStr}:00`).getTime();
-        if (finishedAt < startedAt) finishedAt += 86400000;
-        durationMs = finishedAt - startedAt;
-      }
-
-      let info = resolveTargetInfo('', '', '');
-      if (targetVal.startsWith('room::')) {
-        info = resolveTargetInfo(targetVal.slice(6), '', '');
-      } else if (targetVal.startsWith('machine::')) {
-        const m = machines.find((item) => item.id === targetVal.slice(9));
-        if (m) info = resolveTargetInfo(m.room, m.line, m.id);
-      }
-
-      logs.unshift({
-        id: 'log_' + Date.now(),
-        date,
-        startedAt,
-        finishedAt,
-        durationMs,
-        room: info.room || 'Unassigned',
-        line: info.line || '',
-        machineId: info.machineId || '',
-        machineName: info.machineName || '',
-        targetLabel: info.label,
-        idStatusText: info.idStatusText,
-        notes,
-        parts: [...manualParts]
-      });
-
-      manualParts = [];
-      document.getElementById('manualNotes').value = '';
-      document.getElementById('manualPhotoPreviewWrap').classList.add('hidden');
-      saveState();
-      renderPartsList('manual');
-      renderHistory();
-      toggleManualDrawer();
-    }
-
-    function setHistoryScope(scope) {
-      historyScope = scope;
-      document.getElementById('filterAllBtn').classList.toggle('btn-green', scope === 'all');
-      document.getElementById('filterTodayBtn').classList.toggle('btn-green', scope === 'today');
-      renderHistory();
-    }
-
-    function renderHistory() {
-      const roomSelect = document.getElementById('historyRoomFilter');
-      const currentRoom = roomSelect.value;
-      const rooms = [...new Set(logs.map((l) => l.room))];
-      roomSelect.innerHTML = '<option value="">All Rooms</option>';
-      rooms.forEach((r) => {
-        const opt = document.createElement('option');
-        opt.value = r;
-        opt.textContent = r;
-        roomSelect.appendChild(opt);
-      });
-      roomSelect.value = currentRoom;
-
-      const query = document.getElementById('historySearchInput').value.trim().toLowerCase();
-      const t = todayIso();
-
-      const filtered = logs.filter((l) => {
-        if (historyScope === 'today' && l.date !== t) return false;
-        if (currentRoom && l.room !== currentRoom) return false;
-        if (!query) return true;
-        const partText = (l.parts || []).map((p) => `${p.name} ${p.partNo} ${p.bin}`).join(' ');
-        const hay = `${l.targetLabel || ''} ${l.room} ${l.line} ${l.machineName} ${l.idStatusText || ''} ${l.notes} ${partText}`.toLowerCase();
-        return hay.includes(query);
-      });
-
-      const container = document.getElementById('historyList');
-      container.innerHTML = '';
-      if (!filtered.length) {
-        container.innerHTML = '<div class="card"><div class="meta-line">No shift logs match your filter.</div></div>';
-        return;
-      }
-
-      const groups = {};
-      filtered.forEach((item) => {
-        groups[item.date] = groups[item.date] || [];
-        groups[item.date].push(item);
-      });
-
-      Object.keys(groups).forEach((dateKey) => {
-        const groupDiv = document.createElement('div');
-        groupDiv.className = 'history-group';
-        const groupMs = groups[dateKey].reduce((sum, x) => sum + (x.durationMs || 0), 0);
-        groupDiv.innerHTML = `
-          <div class="history-group-header">
-            <span>${dateKey}</span>
-            <span>${(groupMs / 3600000).toFixed(2)}h</span>
-          </div>
-        `;
-
-        groups[dateKey].forEach((item) => {
-          const row = document.createElement('div');
-          row.className = 'history-row';
-          const hoursStr = ((item.durationMs || 0) / 3600000).toFixed(2) + 'h';
-          const isExpanded = expandedLogId === item.id;
-          const partsHtml = (item.parts && item.parts.length)
-            ? item.parts.map((p) => `<div>&bull; ${escapeHtml(p.name)} (x${p.qty})${p.partNo ? ' [' + escapeHtml(p.partNo) + ']' : ''}</div>`).join('')
-            : '<div class="meta-line">No parts logged</div>';
-
-          row.innerHTML = `
-            <div class="history-row-top">
-              <div>
-                <div style="font-weight:800;">${escapeHtml(item.targetLabel || item.machineName || item.room)}</div>
-                <div class="meta-line">${escapeHtml(item.idStatusText || 'No ID')}</div>
-              </div>
-              <span class="hours-pill">${hoursStr}</span>
-            </div>
-            ${isExpanded ? `
-              <div class="history-details">
-                <div style="margin-bottom:6px;"><strong>Notes:</strong> ${escapeHtml(item.notes || 'None')}</div>
-                <div><strong>Parts:</strong>${partsHtml}</div>
-              </div>
-            ` : ''}
-          `;
-          row.onclick = () => {
-            expandedLogId = expandedLogId === item.id ? null : item.id;
-            renderHistory();
-          };
-          groupDiv.appendChild(row);
-        });
-
-        container.appendChild(groupDiv);
-      });
-    }
-
-    function exportCsv() {
-      const headers = ['Date', 'Target', 'Room', 'Line', 'Machine', 'ID Status', 'Hours', 'Notes', 'Parts'];
-      const rows = logs.map((l) => {
-        const partsStr = (l.parts || []).map((p) => `${p.name} x${p.qty}`).join('; ');
-        const hours = ((l.durationMs || 0) / 3600000).toFixed(2);
-        return [
-          l.date,
-          l.targetLabel || l.machineName || l.room,
-          l.room,
-          l.line || '',
-          l.machineName || '',
-          l.idStatusText || '',
-          hours,
-          l.notes || '',
-          partsStr
-        ]
-          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-          .join(',');
-      });
-      const csv = [headers.join(','), ...rows].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `shift-machine-log-${todayIso()}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    function saveRoomId() {
-      const room = document.getElementById('roomIdNameInput').value.trim();
-      const code = document.getElementById('roomIdCodeInput').value.trim();
-      if (!room) return;
-      if (code) {
-        roomIds[room] = code;
-      } else {
-        delete roomIds[room];
-      }
-      document.getElementById('roomIdNameInput').value = '';
-      document.getElementById('roomIdCodeInput').value = '';
-      saveState();
-      renderMachines();
-      populateManualTargetSelect();
-      renderActiveJob();
-    }
-
-    function addMachine() {
-      const room = document.getElementById('machineRoomInput').value.trim();
-      const line = document.getElementById('machineLineInput').value.trim();
-      const name = document.getElementById('machineNameInput').value.trim();
-      const assetId = document.getElementById('machineAssetIdInput').value.trim();
-      if (!room) return;
-
-      if (name) {
-        machines.push({
-          id: 'm_' + Date.now(),
+      if (mode === 'timer') {
+        activeTimer = {
+          startMs: Date.now(),
           room,
           line,
-          name,
-          assetId
+          machineId,
+          machineName,
+          assetId,
+          notes,
+          parts
+        };
+        const box = document.getElementById('activeWorkBox');
+        box.style.display = 'block';
+        box.innerHTML = `
+          <div class="item-top">
+            <div>
+              <div class="item-title">Active Job: ${escapeHtml(machineName)}</div>
+              <div class="item-sub">Room ID: ${escapeHtml(room)}${line ? ' &middot; Line: ' + escapeHtml(line) : ''}</div>
+              ${!assetId ? '<div style="margin-top:4px;"><span class="badge badge-warn">Machine ID missing</span></div>' : ''}
+            </div>
+            <button class="btn btn-sm" id="finishTimerBtn" style="background:var(--green);color:#fff;">Finish &amp; Log</button>
+          </div>
+        `;
+        document.getElementById('finishTimerBtn').addEventListener('click', () => {
+          const elapsedHours = Math.max(0.01, (Date.now() - activeTimer.startMs) / 3600000);
+          const now = new Date();
+          state.logs.unshift({
+            id: 'log-' + Date.now(),
+            timestamp: now.getTime(),
+            date: now.toISOString().slice(0, 10),
+            room: activeTimer.room,
+            line: activeTimer.line,
+            machineId: activeTimer.machineId,
+            machineName: activeTimer.machineName,
+            assetId: activeTimer.assetId,
+            hours: Number(elapsedHours.toFixed(2)),
+            notes: activeTimer.notes || notes,
+            parts: activeTimer.parts.length ? activeTimer.parts : parts
+          });
+          activeTimer = null;
+          box.style.display = 'none';
+          saveState();
+          updateHeaderHours();
+          renderHistory();
         });
-      } else if (assetId) {
-        roomIds[room] = assetId;
+      } else {
+        const dateVal = document.getElementById('jobDate').value || todayISO();
+        const hoursVal = parseFloat(document.getElementById('jobHours').value) || 0;
+        const ts = new Date(dateVal + 'T12:00:00').getTime();
+        state.logs.unshift({
+          id: 'log-' + Date.now(),
+          timestamp: ts,
+          date: dateVal,
+          room,
+          line,
+          machineId,
+          machineName,
+          assetId,
+          hours: hoursVal,
+          notes,
+          parts
+        });
+        saveState();
+        updateHeaderHours();
+        renderHistory();
       }
 
-      document.getElementById('machineRoomInput').value = '';
-      document.getElementById('machineLineInput').value = '';
-      document.getElementById('machineNameInput').value = '';
-      document.getElementById('machineAssetIdInput').value = '';
-      saveState();
-      renderMachines();
-      populateManualTargetSelect();
-      renderActiveJob();
-    }
+      document.getElementById('jobFormCard').style.display = 'none';
+      document.getElementById('jobNotes').value = '';
+      document.getElementById('jobParts').value = '';
+    });
 
-    function updateMachineIdInline(id, newId) {
-      const item = machines.find((m) => m.id === id);
-      if (!item) return;
-      item.assetId = newId.trim();
-      saveState();
-      renderIdCoverage();
-      populateManualTargetSelect();
-      renderActiveJob();
-    }
-
-    function deleteMachine(id) {
-      machines = machines.filter((m) => m.id !== id);
-      saveState();
-      renderMachines();
-      populateManualTargetSelect();
-    }
-
-    function confirmClearMachines() {
-      showConfirm('Remove all saved machines and room IDs?', () => {
-        machines = [];
-        roomIds = {};
-        saveState();
-        renderMachines();
-        populateManualTargetSelect();
+    // 24-Hour Repeat Job Linking Helper
+    function find24HourRelatedJobs(targetLog, allLogs) {
+      return allLogs.filter(other => {
+        if (other.id === targetLog.id) return false;
+        if (getMachineIdentity(other) !== getMachineIdentity(targetLog)) return false;
+        return Math.abs((other.timestamp || 0) - (targetLog.timestamp || 0)) <= TWENTY_FOUR_HOURS_MS;
       });
     }
 
-    function toggleMissingIdFilter() {
-      missingIdOnly = !missingIdOnly;
-      const btn = document.getElementById('missingIdFilterBtn');
-      btn.classList.toggle('btn-green', missingIdOnly);
-      btn.classList.toggle('btn-amber', !missingIdOnly);
-      btn.textContent = missingIdOnly ? 'Showing Missing IDs Only (Tap to Show All)' : 'Show Missing IDs Only';
-      renderMachines();
-    }
+    // History Tab + Individual Delete + 24h Repeat Linking
+    document.getElementById('filterAllBtn').addEventListener('click', () => {
+      historyFilter = 'all';
+      renderHistory();
+    });
+    document.getElementById('filterTodayBtn').addEventListener('click', () => {
+      historyFilter = 'today';
+      renderHistory();
+    });
+    document.getElementById('historySearch').addEventListener('input', renderHistory);
 
-    function renderIdCoverage() {
-      const machineEntries = machines.filter((m) => m.name && m.name.trim());
-      const total = machineEntries.length;
-      const withId = machineEntries.filter((m) => m.assetId && m.assetId.trim()).length;
-      const missing = total - withId;
-      const pct = total ? Math.round((withId / total) * 100) : 0;
+    function renderHistory() {
+      const container = document.getElementById('historyList');
+      const query = document.getElementById('historySearch').value.trim().toLowerCase();
+      const today = todayISO();
 
-      const badge = document.getElementById('idCoveragePctBadge');
-      badge.textContent = `${pct}% tagged`;
-      badge.className = pct === 100 && total > 0 ? 'badge badge-ok' : 'badge badge-warn';
-
-      document.getElementById('idCoverageSummaryText').textContent =
-        `${withId} / ${total} machines have IDs · ${missing} missing IDs`;
-    }
-
-    function renderMachines() {
-      renderIdCoverage();
-
-      // Room IDs list
-      const roomList = document.getElementById('roomIdsList');
-      const roomKeys = Object.keys(roomIds);
-      roomList.innerHTML = roomKeys.length
-        ? roomKeys.map((r) => `
-            <div class="part-row">
-              <div>
-                <div style="font-weight:700;">${escapeHtml(r)}</div>
-                <div class="meta-line">Room ID: ${escapeHtml(roomIds[r])}</div>
-              </div>
-              <button type="button" class="btn btn-sm btn-red" onclick="delete roomIds['${escapeJs(r)}']; saveState(); renderMachines();">Remove</button>
-            </div>
-          `).join('')
-        : '<div class="meta-line">No Room IDs saved yet.</div>';
-
-      // Machines / Lines list
-      const list = document.getElementById('machinesList');
-      const visible = machines.filter((m) => {
-        if (!missingIdOnly) return true;
-        return !m.assetId || !m.assetId.trim();
+      const filtered = state.logs.filter(log => {
+        if (historyFilter === 'today' && log.date !== today) return false;
+        if (!query) return true;
+        return [log.room, log.line, log.machineName, log.assetId, log.notes, (log.parts || []).join(' ')]
+          .join(' ')
+          .toLowerCase()
+          .includes(query);
       });
 
-      document.getElementById('machineCountLabel').textContent =
-        `${visible.length} ${visible.length === 1 ? 'entry' : 'entries'}`;
-      list.innerHTML = '';
-
-      if (!visible.length) {
-        list.innerHTML = '<div class="meta-line">No entries match the current view.</div>';
+      if (!filtered.length) {
+        container.innerHTML = '<div class="card"><div class="item-sub">No matching jobs logged yet.</div></div>';
         return;
       }
 
-      visible.forEach((m) => {
-        const info = resolveTargetInfo(m.room, m.line, m.id);
-        const row = document.createElement('div');
-        row.className = 'part-row';
-        row.style.flexDirection = 'column';
-        row.style.alignItems = 'stretch';
-        row.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
-            <div>
-              <div style="font-weight:700;">${escapeHtml(info.label)}</div>
-              <div class="meta-line">${escapeHtml(info.idStatusText)}</div>
+      container.innerHTML = filtered.map(log => {
+        const related = find24HourRelatedJobs(log, state.logs);
+        const hasRepeat = related.length > 0;
+        const groupHours = (Number(log.hours) || 0) + related.reduce((s, r) => s + (Number(r.hours) || 0), 0);
+        const repeatKey = `${log.id}`;
+        const isExpanded = expandedRepeatKey === repeatKey;
+
+        return `
+          <div class="item-card" data-log-id="${log.id}">
+            <div class="item-top">
+              <div>
+                <div class="item-title">${escapeHtml(log.machineName)}</div>
+                <div class="item-sub">Room ID: ${escapeHtml(log.room)}${log.line ? ' &middot; Line: ' + escapeHtml(log.line) : ''}</div>
+              </div>
+              <span class="badge badge-ok">${Number(log.hours || 0).toFixed(2)}h</span>
             </div>
-            <button type="button" class="btn btn-sm btn-red" onclick="deleteMachine('${m.id}')">Remove</button>
-          </div>
-          <div style="display:flex; gap:6px; margin-top:6px;">
-            <input type="text" value="${escapeHtml(m.assetId || '')}" placeholder="Set Machine ID..."
-              onchange="updateMachineIdInline('${m.id}', this.value)" />
+
+            <div class="item-actions">
+              <span class="item-sub" style="margin-top:0;">${escapeHtml(log.date)}</span>
+              ${log.assetId
+                ? `<span class="badge badge-ok">Asset: ${escapeHtml(log.assetId)}</span>`
+                : `<span class="badge badge-warn">Machine ID missing &middot; Room ${escapeHtml(log.room)}</span>`
+              }
+              ${hasRepeat
+                ? `<button type="button" class="badge badge-repeat toggle-repeat-btn" data-repeat-key="${repeatKey}">
+                     24h Linked (${related.length + 1} jobs &middot; ${groupHours.toFixed(2)}h)
+                   </button>`
+                : ''
+              }
+            </div>
+
+            <div class="item-sub" style="margin-top:8px;"><strong>Notes:</strong> ${escapeHtml(log.notes || 'None')}</div>
+            <div class="item-sub"><strong>Parts:</strong> ${log.parts && log.parts.length ? escapeHtml(log.parts.join(', ')) : 'No parts logged'}</div>
+
+            ${hasRepeat && isExpanded ? `
+              <div class="linked-box">
+                <strong>Linked jobs within 24 hours on this machine:</strong>
+                ${related.map(r => `
+                  <div class="linked-row">
+                    ${escapeHtml(r.date)} &middot; ${escapeHtml(r.machineName)} (${Number(r.hours || 0).toFixed(2)}h) &mdash; ${escapeHtml(r.notes || 'No notes')}
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+
+            <div class="item-actions" style="justify-content:flex-end;">
+              <button type="button" class="btn btn-sm btn-danger delete-log-btn" data-delete-id="${log.id}">Delete Job</button>
+            </div>
           </div>
         `;
-        list.appendChild(row);
+      }).join('');
+
+      container.querySelectorAll('.toggle-repeat-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const k = btn.dataset.repeatKey;
+          expandedRepeatKey = expandedRepeatKey === k ? null : k;
+          renderHistory();
+        });
+      });
+
+      container.querySelectorAll('.delete-log-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.deleteId;
+          const idx = state.logs.findIndex(x => x.id === id);
+          if (idx === -1) return;
+          const [removed] = state.logs.splice(idx, 1);
+          saveState();
+          updateHeaderHours();
+          renderHistory();
+          showUndoToast(removed, idx);
+        });
+      });
+    }
+
+    function showUndoToast(removed, index) {
+      if (lastDeleted && lastDeleted.timerId) clearTimeout(lastDeleted.timerId);
+      const toast = document.getElementById('undoToast');
+      document.getElementById('undoToastText').textContent = `Deleted "${removed.machineName}" (${Number(removed.hours || 0).toFixed(2)}h)`;
+      toast.classList.add('show');
+      const timerId = setTimeout(() => {
+        toast.classList.remove('show');
+        lastDeleted = null;
+      }, 6000);
+      lastDeleted = { item: removed, index, timerId };
+    }
+
+    document.getElementById('undoDeleteBtn').addEventListener('click', () => {
+      if (!lastDeleted) return;
+      clearTimeout(lastDeleted.timerId);
+      state.logs.splice(lastDeleted.index, 0, lastDeleted.item);
+      lastDeleted = null;
+      document.getElementById('undoToast').classList.remove('show');
+      saveState();
+      updateHeaderHours();
+      renderHistory();
+    });
+
+    // Machines Tab: Save without Asset ID, Add/Edit Asset ID later, Missing %
+    document.getElementById('saveMachineBtn').addEventListener('click', () => {
+      const room = document.getElementById('newMachineRoom').value.trim();
+      const name = document.getElementById('newMachineName').value.trim();
+      const line = document.getElementById('newMachineLine').value.trim();
+      if (!room || !name) return;
+
+      state.machines.unshift({
+        id: 'm-' + Date.now(),
+        room,
+        line,
+        name,
+        assetId: ''
+      });
+      saveState();
+      document.getElementById('newMachineRoom').value = '';
+      document.getElementById('newMachineLine').value = '';
+      document.getElementById('newMachineName').value = '';
+      renderMachines();
+    });
+
+    function renderMachines() {
+      const total = state.machines.length;
+      const missingCount = state.machines.filter(m => !m.assetId || !m.assetId.trim()).length;
+      const pct = total ? Math.round((missingCount / total) * 100) : 0;
+
+      document.getElementById('missingAssetSummary').textContent =
+        `Missing Asset ID: ${missingCount} of ${total} machines (${pct}%)`;
+
+      const list = document.getElementById('machinesList');
+      if (!total) {
+        list.innerHTML = '<div class="item-sub">No machines saved yet.</div>';
+        return;
+      }
+
+      list.innerHTML = state.machines.map(m => {
+        const hasAsset = m.assetId && m.assetId.trim();
+        return `
+          <div class="item-card">
+            <div class="item-top">
+              <div>
+                <div class="item-title">${escapeHtml(m.name)}</div>
+                <div class="item-sub">Room ID: ${escapeHtml(m.room)}${m.line ? ' &middot; Line: ' + escapeHtml(m.line) : ''}</div>
+              </div>
+              ${hasAsset
+                ? `<span class="badge badge-ok">Asset: ${escapeHtml(m.assetId)}</span>`
+                : `<span class="badge badge-warn">Machine ID missing &middot; Room ${escapeHtml(m.room)}</span>`
+              }
+            </div>
+            <div class="item-actions">
+              <button type="button" class="btn btn-sm btn-outline edit-asset-btn" data-machine-id="${m.id}">
+                ${hasAsset ? 'Edit Asset ID' : 'Add Asset ID'}
+              </button>
+              <button type="button" class="btn btn-sm btn-danger remove-machine-btn" data-machine-id="${m.id}">
+                Remove
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      list.querySelectorAll('.edit-asset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const m = state.machines.find(x => x.id === btn.dataset.machineId);
+          if (!m) return;
+          const nextAsset = prompt(`Enter Asset ID for ${m.name} (Room ID: ${m.room}):`, m.assetId || '');
+          if (nextAsset === null) return;
+          m.assetId = nextAsset.trim();
+          // Keep existing logs for this machine in sync if they didn't have an assetId yet
+          state.logs.forEach(log => {
+            if (log.machineId === m.id && !log.assetId) {
+              log.assetId = m.assetId;
+            }
+          });
+          saveState();
+          renderMachines();
+          renderHistory();
+        });
+      });
+
+      list.querySelectorAll('.remove-machine-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.machines = state.machines.filter(x => x.id !== btn.dataset.machineId);
+          saveState();
+          renderMachines();
+        });
       });
     }
 
@@ -1643,17 +846,10 @@
         .replace(/"/g, '&quot;');
     }
 
-    function escapeJs(str) {
-      return String(str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    }
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
-    }
-
-    updateTodayHours();
-    renderActiveJob();
-    if (activeJob) startTimerLoop();
+    // Init
+    updateHeaderHours();
+    renderMachines();
+    renderHistory();
   </script>
 </body>
 </html>
