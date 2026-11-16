@@ -32,6 +32,9 @@
       --amber: #f59e0b;
       --amber-soft: rgba(245, 158, 11, 0.16);
       --amber-border: rgba(245, 158, 11, 0.42);
+      --blue: #38bdf8;
+      --blue-soft: rgba(56, 189, 248, 0.16);
+      --blue-border: rgba(56, 189, 248, 0.42);
       --purple: #c084fc;
       --purple-soft: rgba(168, 85, 247, 0.16);
       --purple-border: rgba(192, 132, 252, 0.42);
@@ -216,6 +219,12 @@
       color: #fcd34d;
     }
 
+    .btn-blue {
+      background: var(--blue-soft);
+      border-color: var(--blue-border);
+      color: #7dd3fc;
+    }
+
     .btn-purple {
       background: var(--purple-soft);
       border-color: var(--purple-border);
@@ -318,6 +327,12 @@
       background: var(--green-soft);
       border-color: var(--green-border);
       color: #86efac;
+    }
+
+    .badge-sap {
+      background: var(--blue-soft);
+      border-color: var(--blue-border);
+      color: #7dd3fc;
     }
 
     .chip-strip {
@@ -427,11 +442,22 @@
       cursor: pointer;
     }
 
+    .history-row.in-sap {
+      border-left: 3px solid var(--blue);
+    }
+
     .history-row-top {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       gap: 8px;
+    }
+
+    .row-pills {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
     }
 
     .hours-pill {
@@ -679,6 +705,13 @@
           <select id="historyRoomFilter" onchange="renderHistory()">
             <option value="">All Rooms</option>
           </select>
+          <select id="historySapFilter" onchange="renderHistory()">
+            <option value="all">SAP: All</option>
+            <option value="pending">Pending SAP</option>
+            <option value="done">Added to SAP</option>
+          </select>
+        </div>
+        <div class="field-group">
           <input type="text" id="historySearchInput" placeholder="Search room, line, machine, ID..." oninput="renderHistory()" />
         </div>
         <button type="button" class="btn btn-sm btn-full" onclick="exportCsv()">Export CSV</button>
@@ -1162,7 +1195,8 @@
         targetLabel: info.label,
         idStatusText: info.idStatusText,
         notes,
-        parts: activeJob.parts || []
+        parts: activeJob.parts || [],
+        inSap: false
       });
 
       activeJob = null;
@@ -1406,7 +1440,8 @@
         targetLabel: info.label,
         idStatusText: info.idStatusText,
         notes,
-        parts: [...manualParts]
+        parts: [...manualParts],
+        inSap: false
       });
 
       manualParts = [];
@@ -1422,6 +1457,14 @@
       historyScope = scope;
       document.getElementById('filterAllBtn').classList.toggle('btn-green', scope === 'all');
       document.getElementById('filterTodayBtn').classList.toggle('btn-green', scope === 'today');
+      renderHistory();
+    }
+
+    function toggleLogSap(logId) {
+      const item = logs.find((l) => l.id === logId);
+      if (!item) return;
+      item.inSap = !item.inSap;
+      saveState();
       renderHistory();
     }
 
@@ -1447,12 +1490,15 @@
       });
       roomSelect.value = currentRoom;
 
+      const sapFilter = document.getElementById('historySapFilter').value;
       const query = document.getElementById('historySearchInput').value.trim().toLowerCase();
       const t = todayIso();
 
       const filtered = logs.filter((l) => {
         if (historyScope === 'today' && l.date !== t) return false;
         if (currentRoom && l.room !== currentRoom) return false;
+        if (sapFilter === 'pending' && l.inSap) return false;
+        if (sapFilter === 'done' && !l.inSap) return false;
         if (!query) return true;
         const partText = (l.parts || []).map((p) => `${p.name} ${p.partNo} ${p.bin}`).join(' ');
         const hay = `${l.targetLabel || ''} ${l.room} ${l.line} ${l.machineName} ${l.idStatusText || ''} ${l.notes} ${partText}`.toLowerCase();
@@ -1485,7 +1531,7 @@
 
         groups[dateKey].forEach((item) => {
           const row = document.createElement('div');
-          row.className = 'history-row';
+          row.className = 'history-row' + (item.inSap ? ' in-sap' : '');
           const hoursStr = ((item.durationMs || 0) / 3600000).toFixed(2) + 'h';
           const timeRangeStr = `${formatClockTime(item.startedAt)} – ${formatClockTime(item.finishedAt)}`;
           const isExpanded = expandedLogId === item.id;
@@ -1499,13 +1545,20 @@
                 <div style="font-weight:800;">${escapeHtml(item.targetLabel || item.machineName || item.room)}</div>
                 <div class="meta-line">${escapeHtml(timeRangeStr)} · ${escapeHtml(item.idStatusText || 'No ID')}</div>
               </div>
-              <span class="hours-pill">${hoursStr}</span>
+              <div class="row-pills">
+                ${item.inSap ? '<span class="badge badge-sap">In SAP</span>' : ''}
+                <span class="hours-pill">${hoursStr}</span>
+              </div>
             </div>
             ${isExpanded ? `
               <div class="history-details">
                 <div style="margin-bottom:6px;"><strong>Notes:</strong> ${escapeHtml(item.notes || 'None')}</div>
                 <div><strong>Parts:</strong>${partsHtml}</div>
-                <div style="display:flex; justify-content:flex-end; margin-top:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:10px;">
+                  <button type="button" class="btn btn-sm ${item.inSap ? 'btn-blue' : 'btn-green'}"
+                    onclick="event.stopPropagation(); toggleLogSap('${item.id}');">
+                    ${item.inSap ? 'Marked In SAP (Undo)' : 'Mark Added to SAP'}
+                  </button>
                   <button type="button" class="btn btn-sm btn-red"
                     onclick="event.stopPropagation(); confirmDeleteLog('${item.id}');">
                     Delete Entry
@@ -1526,7 +1579,7 @@
     }
 
     function exportCsv() {
-      const headers = ['Date', 'Start Time', 'End Time', 'Target', 'Room', 'Line', 'Machine', 'ID Status', 'Hours', 'Notes', 'Parts'];
+      const headers = ['Date', 'Start Time', 'End Time', 'Target', 'Room', 'Line', 'Machine', 'ID Status', 'Hours', 'In SAP', 'Notes', 'Parts'];
       const rows = logs.map((l) => {
         const partsStr = (l.parts || []).map((p) => `${p.name} x${p.qty}`).join('; ');
         const hours = ((l.durationMs || 0) / 3600000).toFixed(2);
@@ -1540,6 +1593,7 @@
           l.machineName || '',
           l.idStatusText || '',
           hours,
+          l.inSap ? 'Yes' : 'No',
           l.notes || '',
           partsStr
         ]
