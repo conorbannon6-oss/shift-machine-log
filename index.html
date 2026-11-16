@@ -14,6 +14,7 @@
   <meta name="theme-color" content="#0b1120" />
   <link id="pwaManifestLink" rel="manifest" href="./manifest.json" />
   <link id="pwaAppleIconLink" rel="apple-touch-icon" href="./1794697579276.jpg" />
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
 
   <style>
     :root {
@@ -557,13 +558,16 @@
           </div>
 
           <div id="activeManualPartForm" class="hidden" style="margin-bottom: 8px;">
+            <div class="meta-line" id="activeQtyPrompt" style="color:#fcd34d; font-weight:700; margin-bottom:6px;">
+              How many parts did you take?
+            </div>
             <div class="filter-grid">
-              <input type="text" id="activePartNoInput" placeholder="Part No. (e.g. 801177466)" />
-              <input type="text" id="activeBinInput" placeholder="Bin (e.g. 24C-01-02)" />
+              <input type="text" id="activePartNoInput" placeholder="Part No. (e.g. 800-898708)" />
+              <input type="text" id="activeBinInput" placeholder="Bin (e.g. 102D-03-01)" />
             </div>
             <div class="filter-grid">
               <input type="text" id="activePartNameInput" placeholder="Part Name / OEM" />
-              <input type="number" id="activePartQtyInput" min="1" value="1" placeholder="Qty" />
+              <input type="number" id="activePartQtyInput" min="1" value="1" placeholder="Qty taken" />
             </div>
             <button type="button" class="btn btn-sm btn-green btn-full" onclick="addManualPart('active')">Add Part to Job</button>
           </div>
@@ -638,13 +642,16 @@
               <div class="meta-line" id="manualScanStatus" style="margin-top:4px;"></div>
             </div>
             <div id="manualManualPartForm" class="hidden" style="margin-bottom: 8px;">
+              <div class="meta-line" id="manualQtyPrompt" style="color:#fcd34d; font-weight:700; margin-bottom:6px;">
+                How many parts did you take?
+              </div>
               <div class="filter-grid">
-                <input type="text" id="manualPartNoInput" placeholder="Part No. (e.g. 801237491)" />
-                <input type="text" id="manualBinInput" placeholder="Bin (e.g. 24B-01-03)" />
+                <input type="text" id="manualPartNoInput" placeholder="Part No. (e.g. 800-898708)" />
+                <input type="text" id="manualBinInput" placeholder="Bin (e.g. 102D-03-01)" />
               </div>
               <div class="filter-grid">
                 <input type="text" id="manualPartNameInput" placeholder="Part Name / OEM" />
-                <input type="number" id="manualPartQtyInput" min="1" value="1" placeholder="Qty" />
+                <input type="number" id="manualPartQtyInput" min="1" value="1" placeholder="Qty taken" />
               </div>
               <button type="button" class="btn btn-sm btn-green btn-full" onclick="addManualPart('manual')">Add Part to Log</button>
             </div>
@@ -781,8 +788,8 @@
     let expandedLogId = null;
 
     let selectedRoom = '';
-    let selectedLine = '__UNSET__'; // '__UNSET__' = not chosen yet, '' = explicitly no line (room-only), string = line name
-    let selectedMachineId = '__UNSET__'; // '__UNSET__' = not chosen yet, '' = explicitly no machine, string = machine id
+    let selectedLine = '__UNSET__';
+    let selectedMachineId = '__UNSET__';
     let timerInterval = null;
 
     function loadJson(key, fallback) {
@@ -809,6 +816,12 @@
       const m = String(now.getMonth() + 1).padStart(2, '0');
       const d = String(now.getDate()).padStart(2, '0');
       return `${y}-${m}-${d}`;
+    }
+
+    function formatClockTime(ts) {
+      if (!ts) return '--:--';
+      const d = new Date(ts);
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
     }
 
     function formatDuration(ms) {
@@ -957,9 +970,8 @@
       startBtn.classList.add('hidden');
       card.classList.remove('hidden');
 
-      const startedDate = new Date(activeJob.startedAt);
       document.getElementById('activeStartedLabel').textContent =
-        'Started ' + startedDate.toTimeString().slice(0, 5);
+        'Started ' + formatClockTime(activeJob.startedAt);
       document.getElementById('activeTimerText').textContent = formatDuration(getActiveElapsedMs());
       document.getElementById('activeNotesInput').value = activeJob.notes || '';
 
@@ -1226,6 +1238,67 @@
       document.getElementById(id).classList.toggle('hidden');
     }
 
+    function parseBinLabelText(rawText) {
+      const lines = String(rawText || '')
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean);
+      const joined = lines.join(' ');
+
+      const partMatch = joined.match(/\b(\d{3}-\d{6,7}|\d{8,12}|[A-Z0-9]{2,5}-\d{3,7})\b/i);
+      const binMatch = joined.match(/\b(\d{1,3}[A-Z]-\d{2}-\d{2}|\d{2}[A-Z]-\d{2}-\d{2}|[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+)\b/i);
+
+      const nameLine = lines.find((l) => /[A-Za-z]{4,}/.test(l) && !/^\d+[- ]?\d+$/.test(l)) || '';
+
+      return {
+        partNo: partMatch ? partMatch[1] : '',
+        bin: binMatch ? binMatch[1] : '',
+        name: nameLine
+      };
+    }
+
+    async function handleBinPhoto(event, mode) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const dataUrl = reader.result;
+        document.getElementById(`${mode}PhotoPreviewWrap`).classList.remove('hidden');
+        document.getElementById(`${mode}PhotoPreview`).src = dataUrl;
+        document.getElementById(`${mode}ManualPartForm`).classList.remove('hidden');
+
+        const statusEl = document.getElementById(`${mode}ScanStatus`);
+        const qtyInput = document.getElementById(`${mode}PartQtyInput`);
+        const promptEl = document.getElementById(`${mode}QtyPrompt`);
+
+        statusEl.textContent = 'Reading bin label...';
+
+        try {
+          if (window.Tesseract && typeof window.Tesseract.recognize === 'function') {
+            const result = await window.Tesseract.recognize(dataUrl, 'eng');
+            const parsed = parseBinLabelText(result && result.data ? result.data.text : '');
+            if (parsed.partNo) document.getElementById(`${mode}PartNoInput`).value = parsed.partNo;
+            if (parsed.bin) document.getElementById(`${mode}BinInput`).value = parsed.bin;
+            if (parsed.name) document.getElementById(`${mode}PartNameInput`).value = parsed.name;
+            statusEl.textContent = 'Label scanned — enter how many parts you took below.';
+          } else {
+            statusEl.textContent = 'Photo attached — enter part details and how many parts you took below.';
+          }
+        } catch (_) {
+          statusEl.textContent = 'Photo attached — enter part details and how many parts you took below.';
+        }
+
+        if (promptEl) promptEl.textContent = 'How many parts did you take?';
+        if (qtyInput) {
+          qtyInput.value = '1';
+          qtyInput.focus();
+          qtyInput.select();
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
     function addManualPart(mode) {
       const prefix = mode === 'active' ? 'active' : 'manual';
       const partNo = document.getElementById(`${prefix}PartNoInput`).value.trim();
@@ -1293,19 +1366,6 @@
         `;
         listEl.appendChild(row);
       });
-    }
-
-    function handleBinPhoto(event, mode) {
-      const file = event.target.files && event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        document.getElementById(`${mode}PhotoPreviewWrap`).classList.remove('hidden');
-        document.getElementById(`${mode}PhotoPreview`).src = reader.result;
-        document.getElementById(`${mode}ScanStatus`).textContent =
-          'Photo attached. Tap + Manual Part to enter part details.';
-      };
-      reader.readAsDataURL(file);
     }
 
     function saveManualLog() {
@@ -1427,6 +1487,7 @@
           const row = document.createElement('div');
           row.className = 'history-row';
           const hoursStr = ((item.durationMs || 0) / 3600000).toFixed(2) + 'h';
+          const timeRangeStr = `${formatClockTime(item.startedAt)} – ${formatClockTime(item.finishedAt)}`;
           const isExpanded = expandedLogId === item.id;
           const partsHtml = (item.parts && item.parts.length)
             ? item.parts.map((p) => `<div>&bull; ${escapeHtml(p.name)} (x${p.qty})${p.partNo ? ' [' + escapeHtml(p.partNo) + ']' : ''}</div>`).join('')
@@ -1436,7 +1497,7 @@
             <div class="history-row-top">
               <div>
                 <div style="font-weight:800;">${escapeHtml(item.targetLabel || item.machineName || item.room)}</div>
-                <div class="meta-line">${escapeHtml(item.idStatusText || 'No ID')}</div>
+                <div class="meta-line">${escapeHtml(timeRangeStr)} · ${escapeHtml(item.idStatusText || 'No ID')}</div>
               </div>
               <span class="hours-pill">${hoursStr}</span>
             </div>
@@ -1465,12 +1526,14 @@
     }
 
     function exportCsv() {
-      const headers = ['Date', 'Target', 'Room', 'Line', 'Machine', 'ID Status', 'Hours', 'Notes', 'Parts'];
+      const headers = ['Date', 'Start Time', 'End Time', 'Target', 'Room', 'Line', 'Machine', 'ID Status', 'Hours', 'Notes', 'Parts'];
       const rows = logs.map((l) => {
         const partsStr = (l.parts || []).map((p) => `${p.name} x${p.qty}`).join('; ');
         const hours = ((l.durationMs || 0) / 3600000).toFixed(2);
         return [
           l.date,
+          formatClockTime(l.startedAt),
+          formatClockTime(l.finishedAt),
           l.targetLabel || l.machineName || l.room,
           l.room,
           l.line || '',
