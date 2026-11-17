@@ -505,6 +505,41 @@
       align-items: center;
       gap: 6px;
     }
+
+    .room-group {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .room-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .room-group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 12px;
+      background: var(--surface-2);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .room-group-title {
+      font-weight: 800;
+      font-size: 0.92rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .room-group-body {
+      padding: 6px 12px 10px;
+    }
   </style>
 </head>
 <body>
@@ -730,9 +765,14 @@
         <div class="meta-line" id="idCoverageSummaryText" style="margin-bottom: 10px;">
           0 / 0 machines have IDs · 0 missing IDs
         </div>
-        <button type="button" class="btn btn-sm btn-amber btn-full" id="missingIdFilterBtn" onclick="toggleMissingIdFilter()">
-          Show Missing IDs Only
-        </button>
+        <div class="btn-row" style="margin-top: 0;">
+          <button type="button" class="btn btn-sm btn-amber" id="missingIdFilterBtn" onclick="toggleMissingIdFilter()">
+            Missing IDs Only
+          </button>
+          <button type="button" class="btn btn-sm" id="toggleAllRoomsBtn" onclick="toggleAllRoomGroups()">
+            Collapse All Rooms
+          </button>
+        </div>
       </div>
 
       <!-- Room IDs -->
@@ -775,10 +815,10 @@
         <button type="button" class="btn btn-green btn-full" onclick="addMachine()">Save Entry</button>
       </div>
 
-      <!-- Saved Entries -->
+      <!-- Saved Entries Grouped by Room -->
       <div class="card">
         <div class="card-header">
-          <h2 class="card-title">Saved Rooms, Lines &amp; Machines</h2>
+          <h2 class="card-title">Saved Machines by Room</h2>
           <span class="meta-line" id="machineCountLabel">0 entries</span>
         </div>
         <div id="machinesList"></div>
@@ -819,6 +859,7 @@
     let historyScope = 'all';
     let missingIdOnly = false;
     let expandedLogId = null;
+    let collapsedRooms = {};
 
     let selectedRoom = '';
     let selectedLine = '__UNSET__';
@@ -1688,7 +1729,21 @@
       const btn = document.getElementById('missingIdFilterBtn');
       btn.classList.toggle('btn-green', missingIdOnly);
       btn.classList.toggle('btn-amber', !missingIdOnly);
-      btn.textContent = missingIdOnly ? 'Showing Missing IDs Only (Tap to Show All)' : 'Show Missing IDs Only';
+      btn.textContent = missingIdOnly ? 'Missing IDs: ON' : 'Missing IDs Only';
+      renderMachines();
+    }
+
+    function toggleRoomGroup(roomKey) {
+      collapsedRooms[roomKey] = !collapsedRooms[roomKey];
+      renderMachines();
+    }
+
+    function toggleAllRoomGroups() {
+      const roomNames = [...new Set(machines.map((m) => m.room || 'Unassigned'))];
+      const allCollapsed = roomNames.length > 0 && roomNames.every((r) => !!collapsedRooms[r]);
+      roomNames.forEach((r) => {
+        collapsedRooms[r] = !allCollapsed;
+      });
       renderMachines();
     }
 
@@ -1739,26 +1794,61 @@
         return;
       }
 
+      const grouped = {};
       visible.forEach((m) => {
-        const info = resolveTargetInfo(m.room, m.line, m.id);
-        const row = document.createElement('div');
-        row.className = 'part-row';
-        row.style.flexDirection = 'column';
-        row.style.alignItems = 'stretch';
-        row.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
-            <div>
-              <div style="font-weight:700;">${escapeHtml(info.label)}</div>
-              <div class="meta-line">${escapeHtml(info.idStatusText)}</div>
+        const roomName = m.room || 'Unassigned';
+        grouped[roomName] = grouped[roomName] || [];
+        grouped[roomName].push(m);
+      });
+
+      const roomNames = Object.keys(grouped);
+      const allCollapsed = roomNames.every((r) => !!collapsedRooms[r]);
+      document.getElementById('toggleAllRoomsBtn').textContent =
+        allCollapsed ? 'Expand All Rooms' : 'Collapse All Rooms';
+
+      roomNames.forEach((roomName) => {
+        const items = grouped[roomName];
+        const missingCount = items.filter((m) => !m.assetId || !m.assetId.trim()).length;
+        const isCollapsed = !!collapsedRooms[roomName];
+
+        const groupEl = document.createElement('div');
+        groupEl.className = 'room-group';
+
+        const headerHtml = `
+          <div class="room-group-header" onclick="toggleRoomGroup('${escapeJs(roomName)}')">
+            <div class="room-group-title">
+              <span class="meta-line">${isCollapsed ? '&#9656;' : '&#9662;'}</span>
+              <span>${escapeHtml(roomName)}</span>
+              <span class="badge">${items.length}</span>
             </div>
-            <button type="button" class="btn btn-sm btn-red" onclick="deleteMachine('${m.id}')">Remove</button>
-          </div>
-          <div style="display:flex; gap:6px; margin-top:6px;">
-            <input type="text" value="${escapeHtml(m.assetId || '')}" placeholder="Set Machine ID..."
-              onchange="updateMachineIdInline('${m.id}', this.value)" />
+            ${missingCount
+              ? `<span class="badge badge-warn">${missingCount} missing</span>`
+              : '<span class="badge badge-ok">All tagged</span>'}
           </div>
         `;
-        list.appendChild(row);
+
+        const bodyItemsHtml = items.map((m) => {
+          const info = resolveTargetInfo(m.room, m.line, m.id);
+          const subLabel = [m.line, m.name].filter(Boolean).join(' > ') || roomName;
+          return `
+            <div class="part-row" style="flex-direction:column; align-items:stretch;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                <div>
+                  <div style="font-weight:700;">${escapeHtml(subLabel)}</div>
+                  <div class="meta-line">${escapeHtml(info.idStatusText)}</div>
+                </div>
+                <button type="button" class="btn btn-sm btn-red" onclick="deleteMachine('${m.id}')">Remove</button>
+              </div>
+              <div style="display:flex; gap:6px; margin-top:6px;">
+                <input type="text" value="${escapeHtml(m.assetId || '')}" placeholder="Set Machine ID..."
+                  onchange="updateMachineIdInline('${m.id}', this.value)" />
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        groupEl.innerHTML = headerHtml + (isCollapsed ? '' : `<div class="room-group-body">${bodyItemsHtml}</div>`);
+        list.appendChild(groupEl);
       });
     }
 
