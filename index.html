@@ -638,7 +638,7 @@
 
         <div class="field-group">
           <label class="field-label" for="activeNotesInput">Work Notes</label>
-          <textarea id="activeNotesInput" placeholder="What was done on this job..."></textarea>
+          <textarea id="activeNotesInput" oninput="handleActiveNotesInput(this.value)" placeholder="What was done on this job..."></textarea>
         </div>
 
         <button type="button" class="btn btn-green btn-full" onclick="finishActiveJob()">FINISH &amp; SAVE LOG</button>
@@ -997,6 +997,12 @@
       };
     }
 
+    function handleActiveNotesInput(val) {
+      if (!activeJob) return;
+      activeJob.notes = val;
+      localStorage.setItem(STORAGE_KEYS.active, JSON.stringify(activeJob));
+    }
+
     function startWork() {
       if (activeJob) return;
       const now = Date.now();
@@ -1044,10 +1050,17 @@
       startBtn.classList.add('hidden');
       card.classList.remove('hidden');
 
+      const notesEl = document.getElementById('activeNotesInput');
+      if (notesEl && activeJob.notes === undefined) {
+        activeJob.notes = notesEl.value;
+      }
+
       document.getElementById('activeStartedLabel').textContent =
         'Started ' + formatClockTime(activeJob.startedAt);
       document.getElementById('activeTimerText').textContent = formatDuration(getActiveElapsedMs());
-      document.getElementById('activeNotesInput').value = activeJob.notes || '';
+      if (notesEl) {
+        notesEl.value = activeJob.notes || '';
+      }
 
       if (activeJob.room) selectedRoom = activeJob.room;
       if (selectedLine === '__UNSET__' && activeJob.room) {
