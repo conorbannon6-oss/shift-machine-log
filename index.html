@@ -256,7 +256,7 @@
       text-transform: uppercase;
       letter-spacing: 0.04em;
       color: var(--muted);
-      margin-bottom: 5px;
+      margin-bottom: 6px;
     }
 
     input[type="text"],
@@ -383,17 +383,17 @@
     .chip-strip {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 7px;
     }
 
     .chip {
-      min-height: 36px;
-      padding: 6px 11px;
+      min-height: 38px;
+      padding: 7px 13px;
       border-radius: 999px;
       border: 1px solid var(--border);
       background: var(--bg);
       color: var(--text);
-      font-size: 0.82rem;
+      font-size: 0.84rem;
       font-weight: 700;
       cursor: pointer;
     }
@@ -629,9 +629,9 @@
         <div class="id-readout-box" id="activeIdReadout"></div>
 
         <div class="field-group">
-          <label class="field-label" for="activeQuickFilterInput">Quick Filter Room / Line / Machine</label>
+          <label class="field-label" for="activeQuickFilterInput">Quick Jump (Optional)</label>
           <div class="combobox-wrapper">
-            <input type="text" id="activeQuickFilterInput" placeholder="Type to jump to room, line, or machine..." autocomplete="off" />
+            <input type="text" id="activeQuickFilterInput" placeholder="Type room, line, or machine..." autocomplete="off" />
             <ul id="activeQuickFilterDropdown" class="combobox-list hidden"></ul>
           </div>
         </div>
@@ -710,22 +710,38 @@
         <div id="pausedQueueList"></div>
       </div>
 
-      <!-- Manual / Past Entry Toggle -->
+      <!-- Manual / Past Entry Toggle (Matches Start Work Chip Flow) -->
       <div class="card">
         <button type="button" class="btn btn-full" id="manualToggleBtn" onclick="toggleManualDrawer()">
           Log Manual / Past Entry
         </button>
 
-        <div id="manualDrawer" class="hidden" style="margin-top: 12px;">
-          <div class="filter-grid">
-            <div>
-              <label class="field-label" for="manualDate">Date</label>
-              <input type="date" id="manualDate" />
-            </div>
-            <div>
-              <label class="field-label" for="manualTargetSelect">Room / Line / Machine</label>
-              <select id="manualTargetSelect"></select>
-            </div>
+        <div id="manualDrawer" class="hidden" style="margin-top: 14px;">
+          <div class="card-header" style="margin-bottom: 8px;">
+            <span class="field-label" style="margin:0;">Past Entry Target</span>
+            <span class="meta-line" id="manualSelectionSummary">No room selected</span>
+          </div>
+
+          <div class="id-readout-box" id="manualIdReadout"></div>
+
+          <div class="field-group">
+            <label class="field-label">1. Room (Required)</label>
+            <div class="chip-strip" id="manualRoomChips"></div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">2. Line / Process Line (Optional)</label>
+            <div class="chip-strip" id="manualLineChips"></div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">3. Machine / Asset (Optional)</label>
+            <div class="chip-strip" id="manualMachineChips"></div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="manualDate">Date</label>
+            <input type="date" id="manualDate" />
           </div>
 
           <div class="filter-grid">
@@ -930,9 +946,16 @@
     let expandedLogId = null;
     let collapsedRooms = {};
 
+    // Active job chip selection state
     let selectedRoom = '';
     let selectedLine = '__UNSET__';
     let selectedMachineId = '__UNSET__';
+
+    // Manual entry chip selection state
+    let manualSelectedRoom = '';
+    let manualSelectedLine = '__UNSET__';
+    let manualSelectedMachineId = '';
+
     let timerInterval = null;
 
     function loadJson(key, fallback) {
@@ -1105,8 +1128,7 @@
           quickList,
           () => {
             const opts = [];
-            const rooms = getCanonicalRoomList();
-            rooms.forEach((r) => {
+            getCanonicalRoomList().forEach((r) => {
               opts.push({
                 type: 'room',
                 room: r,
@@ -1236,6 +1258,105 @@
       };
     }
 
+    function renderTargetChips({
+      roomContainerId,
+      lineContainerId,
+      machineContainerId,
+      summaryId,
+      idBoxId,
+      getState,
+      setState
+    }) {
+      const state = getState();
+      const roomWrap = document.getElementById(roomContainerId);
+      const lineWrap = document.getElementById(lineContainerId);
+      const machineWrap = document.getElementById(machineContainerId);
+
+      roomWrap.innerHTML = '';
+      getCanonicalRoomList().forEach((room) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'chip' + (state.room === room ? ' selected' : '');
+        btn.textContent = room;
+        btn.onclick = () => {
+          setState({ room, line: '__UNSET__', machineId: '' });
+        };
+        roomWrap.appendChild(btn);
+      });
+
+      lineWrap.innerHTML = '';
+      if (state.room) {
+        const noLineBtn = document.createElement('button');
+        noLineBtn.type = 'button';
+        noLineBtn.className = 'chip subtle-option' + (state.line === '' ? ' selected' : '');
+        noLineBtn.textContent = 'No Line (Room only)';
+        noLineBtn.onclick = () => {
+          setState({ room: state.room, line: '', machineId: '' });
+        };
+        lineWrap.appendChild(noLineBtn);
+
+        const lines = [...new Set(
+          machines
+            .filter((m) => m.room === state.room && m.line)
+            .map((m) => m.line)
+        )];
+        lines.forEach((line) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'chip' + (state.line === line ? ' selected' : '');
+          btn.textContent = line;
+          btn.onclick = () => {
+            setState({ room: state.room, line, machineId: '' });
+          };
+          lineWrap.appendChild(btn);
+        });
+      }
+
+      machineWrap.innerHTML = '';
+      if (state.room && state.line !== '__UNSET__') {
+        const noMachineBtn = document.createElement('button');
+        noMachineBtn.type = 'button';
+        noMachineBtn.className = 'chip subtle-option' + (state.machineId === '' ? ' selected' : '');
+        noMachineBtn.textContent = 'No Machine';
+        noMachineBtn.onclick = () => {
+          setState({ room: state.room, line: state.line, machineId: '' });
+        };
+        machineWrap.appendChild(noMachineBtn);
+
+        const filteredMachines = machines.filter((m) => {
+          if (m.room !== state.room || !m.name) return false;
+          if (state.line === '') return !m.line;
+          return m.line === state.line;
+        });
+
+        filteredMachines.forEach((m) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'chip' + (state.machineId === m.id ? ' selected' : '');
+          btn.textContent = m.name;
+          btn.onclick = () => {
+            setState({ room: state.room, line: state.line, machineId: m.id });
+          };
+          machineWrap.appendChild(btn);
+        });
+      }
+
+      const info = resolveTargetInfo(
+        state.room,
+        state.line === '__UNSET__' ? '' : state.line,
+        state.machineId
+      );
+      document.getElementById(summaryId).textContent = info.label;
+      const badgeClass =
+        info.idState === 'machine' || info.idState === 'room'
+          ? 'badge badge-ok'
+          : info.idState === 'missing_machine_with_room'
+            ? 'badge badge-warn'
+            : 'badge badge-na';
+      document.getElementById(idBoxId).innerHTML =
+        `<span class="${badgeClass}">${escapeHtml(info.idStatusText)}</span>`;
+    }
+
     function handleActiveNotesInput(val) {
       if (!activeJob) return;
       activeJob.notes = val;
@@ -1309,117 +1430,28 @@
         selectedMachineId = activeJob.machineId || '';
       }
 
-      const roomSet = getCanonicalRoomList();
-      const roomWrap = document.getElementById('activeRoomChips');
-      roomWrap.innerHTML = '';
-      roomSet.forEach((room) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'chip' + (selectedRoom === room ? ' selected' : '');
-        btn.textContent = room;
-        btn.onclick = () => {
-          selectedRoom = room;
-          selectedLine = '__UNSET__';
-          selectedMachineId = '__UNSET__';
-          activeJob.room = room;
-          activeJob.line = '';
-          activeJob.machineId = '';
+      renderTargetChips({
+        roomContainerId: 'activeRoomChips',
+        lineContainerId: 'activeLineChips',
+        machineContainerId: 'activeMachineChips',
+        summaryId: 'activeSelectionSummary',
+        idBoxId: 'activeIdReadout',
+        getState: () => ({
+          room: selectedRoom,
+          line: selectedLine,
+          machineId: selectedMachineId === '__UNSET__' ? '' : selectedMachineId
+        }),
+        setState: (next) => {
+          selectedRoom = next.room;
+          selectedLine = next.line;
+          selectedMachineId = next.machineId;
+          activeJob.room = next.room;
+          activeJob.line = next.line === '__UNSET__' ? '' : next.line;
+          activeJob.machineId = next.machineId;
           saveState();
           renderActiveJob();
-        };
-        roomWrap.appendChild(btn);
+        }
       });
-
-      const lineWrap = document.getElementById('activeLineChips');
-      lineWrap.innerHTML = '';
-      if (selectedRoom) {
-        const noLineBtn = document.createElement('button');
-        noLineBtn.type = 'button';
-        noLineBtn.className = 'chip subtle-option' + (selectedLine === '' ? ' selected' : '');
-        noLineBtn.textContent = 'No Line (Room only)';
-        noLineBtn.onclick = () => {
-          selectedLine = '';
-          selectedMachineId = '';
-          activeJob.line = '';
-          activeJob.machineId = '';
-          saveState();
-          renderActiveJob();
-        };
-        lineWrap.appendChild(noLineBtn);
-
-        const lines = [...new Set(
-          machines
-            .filter((m) => m.room === selectedRoom && m.line)
-            .map((m) => m.line)
-        )];
-        lines.forEach((line) => {
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'chip' + (selectedLine === line ? ' selected' : '');
-          btn.textContent = line;
-          btn.onclick = () => {
-            selectedLine = line;
-            selectedMachineId = '__UNSET__';
-            activeJob.line = line;
-            activeJob.machineId = '';
-            saveState();
-            renderActiveJob();
-          };
-          lineWrap.appendChild(btn);
-        });
-      }
-
-      const machineWrap = document.getElementById('activeMachineChips');
-      machineWrap.innerHTML = '';
-      if (selectedRoom && selectedLine !== '__UNSET__') {
-        const noMachineBtn = document.createElement('button');
-        noMachineBtn.type = 'button';
-        noMachineBtn.className = 'chip subtle-option' + (selectedMachineId === '' ? ' selected' : '');
-        noMachineBtn.textContent = 'No Machine';
-        noMachineBtn.onclick = () => {
-          selectedMachineId = '';
-          activeJob.machineId = '';
-          saveState();
-          renderActiveJob();
-        };
-        machineWrap.appendChild(noMachineBtn);
-
-        const filteredMachines = machines.filter((m) => {
-          if (m.room !== selectedRoom || !m.name) return false;
-          if (selectedLine === '') return !m.line;
-          return m.line === selectedLine;
-        });
-
-        filteredMachines.forEach((m) => {
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'chip' + (activeJob.machineId === m.id ? ' selected' : '');
-          btn.textContent = m.name;
-          btn.onclick = () => {
-            selectedMachineId = m.id;
-            activeJob.machineId = m.id;
-            saveState();
-            renderActiveJob();
-          };
-          machineWrap.appendChild(btn);
-        });
-      }
-
-      const info = resolveTargetInfo(
-        selectedRoom,
-        selectedLine === '__UNSET__' ? '' : selectedLine,
-        selectedMachineId === '__UNSET__' ? '' : selectedMachineId
-      );
-
-      document.getElementById('activeSelectionSummary').textContent = info.label;
-      const idBox = document.getElementById('activeIdReadout');
-      const badgeClass =
-        info.idState === 'machine' || info.idState === 'room'
-          ? 'badge badge-ok'
-          : info.idState === 'missing_machine_with_room'
-            ? 'badge badge-warn'
-            : 'badge badge-na';
-      idBox.innerHTML = `<span class="${badgeClass}">${escapeHtml(info.idStatusText)}</span>`;
 
       renderPartsList('active');
       renderPausedQueue();
@@ -1527,30 +1559,32 @@
       const drawer = document.getElementById('manualDrawer');
       drawer.classList.toggle('hidden');
       if (!drawer.classList.contains('hidden')) {
-        document.getElementById('manualDate').value = todayIso();
-        populateManualTargetSelect();
+        if (!document.getElementById('manualDate').value) {
+          document.getElementById('manualDate').value = todayIso();
+        }
+        renderManualChips();
         renderPartsList('manual');
       }
     }
 
-    function populateManualTargetSelect() {
-      const select = document.getElementById('manualTargetSelect');
-      select.innerHTML = '<option value="">Select Room / Line / Machine</option>';
-
-      const roomSet = getCanonicalRoomList();
-      roomSet.forEach((room) => {
-        const opt = document.createElement('option');
-        opt.value = `room::${room}`;
-        opt.textContent = `${room} (Room only)`;
-        select.appendChild(opt);
-      });
-
-      machines.forEach((m) => {
-        const info = resolveTargetInfo(m.room, m.line, m.id);
-        const opt = document.createElement('option');
-        opt.value = `machine::${m.id}`;
-        opt.textContent = info.label;
-        select.appendChild(opt);
+    function renderManualChips() {
+      renderTargetChips({
+        roomContainerId: 'manualRoomChips',
+        lineContainerId: 'manualLineChips',
+        machineContainerId: 'manualMachineChips',
+        summaryId: 'manualSelectionSummary',
+        idBoxId: 'manualIdReadout',
+        getState: () => ({
+          room: manualSelectedRoom,
+          line: manualSelectedLine,
+          machineId: manualSelectedMachineId
+        }),
+        setState: (next) => {
+          manualSelectedRoom = next.room;
+          manualSelectedLine = next.line;
+          manualSelectedMachineId = next.machineId;
+          renderManualChips();
+        }
       });
     }
 
@@ -1691,7 +1725,6 @@
 
     function saveManualLog() {
       const date = document.getElementById('manualDate').value || todayIso();
-      const targetVal = document.getElementById('manualTargetSelect').value;
       const startStr = document.getElementById('manualStart').value;
       const endStr = document.getElementById('manualEnd').value;
       const notes = document.getElementById('manualNotes').value.trim();
@@ -1706,13 +1739,11 @@
         durationMs = finishedAt - startedAt;
       }
 
-      let info = resolveTargetInfo('', '', '');
-      if (targetVal.startsWith('room::')) {
-        info = resolveTargetInfo(targetVal.slice(6), '', '');
-      } else if (targetVal.startsWith('machine::')) {
-        const m = machines.find((item) => item.id === targetVal.slice(9));
-        if (m) info = resolveTargetInfo(m.room, m.line, m.id);
-      }
+      const info = resolveTargetInfo(
+        manualSelectedRoom,
+        manualSelectedLine === '__UNSET__' ? '' : manualSelectedLine,
+        manualSelectedMachineId
+      );
 
       logs.unshift({
         id: 'log_' + Date.now(),
@@ -1732,6 +1763,11 @@
       });
 
       manualParts = [];
+      manualSelectedRoom = '';
+      manualSelectedLine = '__UNSET__';
+      manualSelectedMachineId = '';
+      document.getElementById('manualStart').value = '';
+      document.getElementById('manualEnd').value = '';
       document.getElementById('manualNotes').value = '';
       document.getElementById('manualPhotoPreviewWrap').classList.add('hidden');
       saveState();
@@ -1911,7 +1947,6 @@
       document.getElementById('roomIdCodeInput').value = '';
       saveState();
       renderMachines();
-      populateManualTargetSelect();
       renderActiveJob();
     }
 
@@ -1942,7 +1977,6 @@
       document.getElementById('machineAssetIdInput').value = '';
       saveState();
       renderMachines();
-      populateManualTargetSelect();
       renderActiveJob();
     }
 
@@ -1952,7 +1986,6 @@
       item.assetId = newId.trim();
       saveState();
       renderIdCoverage();
-      populateManualTargetSelect();
       renderActiveJob();
     }
 
@@ -1960,7 +1993,6 @@
       machines = machines.filter((m) => m.id !== id);
       saveState();
       renderMachines();
-      populateManualTargetSelect();
     }
 
     function confirmClearMachines() {
@@ -1969,7 +2001,6 @@
         roomIds = {};
         saveState();
         renderMachines();
-        populateManualTargetSelect();
       });
     }
 
