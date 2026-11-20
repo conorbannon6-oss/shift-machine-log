@@ -246,6 +246,7 @@
 
     .field-group {
       margin-bottom: 12px;
+      position: relative;
     }
 
     .field-label {
@@ -278,6 +279,50 @@
     textarea {
       min-height: 76px;
       resize: vertical;
+    }
+
+    .combobox-wrapper {
+      position: relative;
+    }
+
+    .combobox-list {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 4px);
+      background: var(--surface-2);
+      border: 1px solid #475569;
+      border-radius: var(--radius-sm);
+      max-height: 210px;
+      overflow-y: auto;
+      z-index: 60;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
+    }
+
+    .combobox-item {
+      padding: 9px 12px;
+      font-size: 0.88rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      cursor: pointer;
+    }
+
+    .combobox-item:last-child {
+      border-bottom: none;
+    }
+
+    .combobox-item:hover,
+    .combobox-item:active {
+      background: var(--surface-3);
+    }
+
+    .combobox-sub {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 2px;
     }
 
     .timer-readout {
@@ -584,6 +629,14 @@
         <div class="id-readout-box" id="activeIdReadout"></div>
 
         <div class="field-group">
+          <label class="field-label" for="activeQuickFilterInput">Quick Filter Room / Line / Machine</label>
+          <div class="combobox-wrapper">
+            <input type="text" id="activeQuickFilterInput" placeholder="Type to jump to room, line, or machine..." autocomplete="off" />
+            <ul id="activeQuickFilterDropdown" class="combobox-list hidden"></ul>
+          </div>
+        </div>
+
+        <div class="field-group">
           <label class="field-label">1. Room (Required)</label>
           <div class="chip-strip" id="activeRoomChips"></div>
         </div>
@@ -798,7 +851,10 @@
 
         <div class="field-group">
           <label class="field-label" for="machineRoomInput">Room (Required)</label>
-          <input type="text" id="machineRoomInput" placeholder="e.g. Deboning or Retail 1" />
+          <div class="combobox-wrapper">
+            <input type="text" id="machineRoomInput" placeholder="e.g. Basket Wash, Deboning, Retail 1" autocomplete="off" />
+            <ul id="machineRoomDropdown" class="combobox-list hidden"></ul>
+          </div>
         </div>
         <div class="field-group">
           <label class="field-label" for="machineLineInput">Line / Process Line (Optional)</label>
@@ -850,6 +906,19 @@
       { id: 'm6', room: 'Retail 1', line: '', name: '', assetId: '' }
     ];
 
+    function normalizeKey(str) {
+      return String(str || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    }
+
+    function toTitleCase(str) {
+      const cleaned = String(str || '').trim().replace(/\s+/g, ' ');
+      if (!cleaned) return '';
+      return cleaned
+        .split(' ')
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+    }
+
     let machines = loadJson(STORAGE_KEYS.machines, DEFAULT_MACHINES);
     let roomIds = loadJson(STORAGE_KEYS.roomIds, DEFAULT_ROOM_IDS);
     let logs = loadJson(STORAGE_KEYS.logs, []);
@@ -873,6 +942,51 @@
       } catch (_) {
         return fallback;
       }
+    }
+
+    function normalizeAllRooms() {
+      const roomMap = new Map();
+      machines.forEach((m) => {
+        const key = normalizeKey(m.room);
+        if (key && !roomMap.has(key)) {
+          roomMap.set(key, toTitleCase(m.room));
+        }
+      });
+      Object.keys(roomIds).forEach((r) => {
+        const key = normalizeKey(r);
+        if (key && !roomMap.has(key)) {
+          roomMap.set(key, toTitleCase(r));
+        }
+      });
+
+      machines = machines.map((m) => {
+        const key = normalizeKey(m.room);
+        return {
+          ...m,
+          room: key ? (roomMap.get(key) || toTitleCase(m.room)) : 'Unassigned'
+        };
+      });
+
+      const mergedRoomIds = {};
+      Object.entries(roomIds).forEach(([r, code]) => {
+        const key = normalizeKey(r);
+        if (!key) return;
+        const canonical = roomMap.get(key) || toTitleCase(r);
+        if (!mergedRoomIds[canonical]) {
+          mergedRoomIds[canonical] = code;
+        }
+      });
+      roomIds = mergedRoomIds;
+    }
+
+    function canonicalRoomName(rawRoom) {
+      const key = normalizeKey(rawRoom);
+      if (!key) return '';
+      const existingMachine = machines.find((m) => normalizeKey(m.room) === key);
+      if (existingMachine) return existingMachine.room;
+      const existingRoomIdKey = Object.keys(roomIds).find((r) => normalizeKey(r) === key);
+      if (existingRoomIdKey) return existingRoomIdKey;
+      return toTitleCase(rawRoom);
     }
 
     function saveState() {
@@ -943,6 +1057,131 @@
 
     function hideConfirm() {
       document.getElementById('confirmBanner').classList.add('hidden');
+    }
+
+    function setupCombobox(inputEl, listEl, getOptions, onSelect) {
+      function render(query) {
+        const q = normalizeKey(query);
+        const options = getOptions();
+        const filtered = q
+          ? options.filter((opt) => normalizeKey(opt.searchText).includes(q))
+          : options;
+        listEl.innerHTML = '';
+        if (!filtered.length) {
+          listEl.classList.add('hidden');
+          return;
+        }
+        filtered.forEach((opt) => {
+          const li = document.createElement('li');
+          li.className = 'combobox-item';
+          li.innerHTML = `
+            <div>${escapeHtml(opt.label)}</div>
+            ${opt.sub ? `<span class="combobox-sub">${escapeHtml(opt.sub)}</span>` : ''}
+          `;
+          li.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            inputEl.value = opt.value;
+            listEl.classList.add('hidden');
+            if (onSelect) onSelect(opt);
+          });
+          listEl.appendChild(li);
+        });
+        listEl.classList.remove('hidden');
+      }
+
+      inputEl.addEventListener('focus', () => render(inputEl.value));
+      inputEl.addEventListener('input', () => render(inputEl.value));
+      inputEl.addEventListener('blur', () => {
+        setTimeout(() => listEl.classList.add('hidden'), 150);
+      });
+    }
+
+    function initComboboxes() {
+      const quickInput = document.getElementById('activeQuickFilterInput');
+      const quickList = document.getElementById('activeQuickFilterDropdown');
+      if (quickInput && quickList) {
+        setupCombobox(
+          quickInput,
+          quickList,
+          () => {
+            const opts = [];
+            const rooms = getCanonicalRoomList();
+            rooms.forEach((r) => {
+              opts.push({
+                type: 'room',
+                room: r,
+                label: r,
+                sub: roomIds[r] ? `Room ID: ${roomIds[r]}` : 'Room',
+                value: r,
+                searchText: `${r} ${roomIds[r] || ''}`
+              });
+            });
+            machines.forEach((m) => {
+              const path = [m.room, m.line, m.name].filter(Boolean).join(' > ');
+              opts.push({
+                type: 'machine',
+                machine: m,
+                label: path,
+                sub: m.assetId ? `Machine ID: ${m.assetId}` : 'Machine ID missing',
+                value: path,
+                searchText: `${path} ${m.assetId || ''}`
+              });
+            });
+            return opts;
+          },
+          (opt) => {
+            if (!activeJob) return;
+            if (opt.type === 'room') {
+              selectedRoom = opt.room;
+              selectedLine = '';
+              selectedMachineId = '';
+              activeJob.room = opt.room;
+              activeJob.line = '';
+              activeJob.machineId = '';
+            } else if (opt.type === 'machine') {
+              selectedRoom = opt.machine.room;
+              selectedLine = opt.machine.line || '';
+              selectedMachineId = opt.machine.id;
+              activeJob.room = opt.machine.room;
+              activeJob.line = opt.machine.line || '';
+              activeJob.machineId = opt.machine.id;
+            }
+            saveState();
+            renderActiveJob();
+          }
+        );
+      }
+
+      const roomInput = document.getElementById('machineRoomInput');
+      const roomDropdown = document.getElementById('machineRoomDropdown');
+      if (roomInput && roomDropdown) {
+        setupCombobox(
+          roomInput,
+          roomDropdown,
+          () => getCanonicalRoomList().map((r) => {
+            const count = machines.filter((m) => m.room === r).length;
+            return {
+              label: r,
+              sub: `${count} saved ${count === 1 ? 'entry' : 'entries'}`,
+              value: r,
+              searchText: r
+            };
+          })
+        );
+      }
+    }
+
+    function getCanonicalRoomList() {
+      const map = new Map();
+      machines.forEach((m) => {
+        const key = normalizeKey(m.room);
+        if (key && !map.has(key)) map.set(key, m.room);
+      });
+      Object.keys(roomIds).forEach((r) => {
+        const key = normalizeKey(r);
+        if (key && !map.has(key)) map.set(key, r);
+      });
+      return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
     }
 
     function resolveTargetInfo(room, line, machineId) {
@@ -1070,10 +1309,7 @@
         selectedMachineId = activeJob.machineId || '';
       }
 
-      const roomSet = new Set([
-        ...Object.keys(roomIds),
-        ...machines.map((m) => m.room).filter(Boolean)
-      ]);
+      const roomSet = getCanonicalRoomList();
       const roomWrap = document.getElementById('activeRoomChips');
       roomWrap.innerHTML = '';
       roomSet.forEach((room) => {
@@ -1301,10 +1537,7 @@
       const select = document.getElementById('manualTargetSelect');
       select.innerHTML = '<option value="">Select Room / Line / Machine</option>';
 
-      const roomSet = new Set([
-        ...Object.keys(roomIds),
-        ...machines.map((m) => m.room).filter(Boolean)
-      ]);
+      const roomSet = getCanonicalRoomList();
       roomSet.forEach((room) => {
         const opt = document.createElement('option');
         opt.value = `room::${room}`;
@@ -1665,9 +1898,10 @@
     }
 
     function saveRoomId() {
-      const room = document.getElementById('roomIdNameInput').value.trim();
+      const rawRoom = document.getElementById('roomIdNameInput').value.trim();
       const code = document.getElementById('roomIdCodeInput').value.trim();
-      if (!room) return;
+      if (!rawRoom) return;
+      const room = canonicalRoomName(rawRoom);
       if (code) {
         roomIds[room] = code;
       } else {
@@ -1682,11 +1916,13 @@
     }
 
     function addMachine() {
-      const room = document.getElementById('machineRoomInput').value.trim();
+      const rawRoom = document.getElementById('machineRoomInput').value.trim();
       const line = document.getElementById('machineLineInput').value.trim();
       const name = document.getElementById('machineNameInput').value.trim();
       const assetId = document.getElementById('machineAssetIdInput').value.trim();
-      if (!room) return;
+      if (!rawRoom) return;
+
+      const room = canonicalRoomName(rawRoom);
 
       if (name) {
         machines.push({
@@ -1881,6 +2117,9 @@
       navigator.serviceWorker.register('./sw.js').catch(() => {});
     }
 
+    normalizeAllRooms();
+    saveState();
+    initComboboxes();
     updateTodayHours();
     renderActiveJob();
     if (activeJob) startTimerLoop();
